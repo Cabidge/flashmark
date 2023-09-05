@@ -27,9 +27,12 @@ pub fn parse(scope: &mut rhai::Scope, input: &str) -> String {
                 chars.next(); // consume the '('
 
                 let expr = chars.by_ref().take_while(|&c| c != ')').collect::<String>();
+                let res = new_engine()
+                    .eval_expression_with_scope::<rhai::Dynamic>(scope, &expr)
+                    .map(|r| r.to_string())
+                    .unwrap_or_else(|err| err.to_string());
 
-                // TODO: evaluate the expression
-                output.push_str(&format!("[expr]({expr:?})"));
+                output.push_str(&res);
             }
             // capture keyword
             '@' if chars.peek().is_some_and(|c| c.is_alphabetic()) => {
@@ -141,4 +144,46 @@ fn capture_if_chain_stmt(
     }
 
     stmt
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn expression_string() {
+        let mut scope = rhai::Scope::new();
+        let input = "Hello, @(\"World\")!";
+        let expected = "Hello, World!";
+        let actual = super::parse(&mut scope, input);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn expression_arithmetic() {
+        let mut scope = rhai::Scope::new();
+        let input = "1 + 2 = @(1 + 2)";
+        let expected = "1 + 2 = 3";
+        let actual = super::parse(&mut scope, input);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn expression_variables() {
+        let mut scope = rhai::Scope::new();
+        scope.push("name", "World");
+        let input = "Hello, @(name)!";
+        let expected = "Hello, World!";
+        let actual = super::parse(&mut scope, input);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn expression_variables_and_arithmetic() {
+        let mut scope = rhai::Scope::new();
+        scope.push("x", 1);
+        scope.push("y", 2);
+        let input = "@(x) + @(y) = @(x + y)";
+        let expected = "1 + 2 = 3";
+        let actual = super::parse(&mut scope, input);
+        assert_eq!(actual, expected);
+    }
 }
