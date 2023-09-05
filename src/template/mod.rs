@@ -10,9 +10,14 @@ struct IfChainStmt {
     tail: Option<String>,
 }
 
+// Create engine used to evaluate template scripts.
+pub fn new_engine() -> rhai::Engine {
+    rhai::Engine::new()
+}
+
 // Expressions - @(<expr>)
 // If - @if <expr> { <body> } [@elif  <expr> { <body> }]* [@else { <body> }]
-pub fn parse(input: &str) -> String {
+pub fn parse(scope: &mut rhai::Scope, input: &str) -> String {
     let mut output = String::new();
     let mut chars = input.chars().peekable();
     while let Some(c) = chars.next() {
@@ -32,7 +37,7 @@ pub fn parse(input: &str) -> String {
 
                 match keyword.as_str() {
                     "if" => {
-                        let stmt = capture_if_chain_stmt(&mut chars);
+                        let stmt = capture_if_chain_stmt(scope, &mut chars);
 
                         // TODO: evaluate if chain
                         for stmt in stmt.ifs {
@@ -74,23 +79,26 @@ fn capture_keyword(chars: &mut Peekable<impl Iterator<Item = char>>) -> String {
 /// Captures { <body> }.
 ///
 /// Returns the parsed body.
-fn capture_body(chars: &mut impl Iterator<Item = char>) -> String {
+fn capture_body(scope: &mut rhai::Scope, chars: &mut impl Iterator<Item = char>) -> String {
     let body = chars.take_while(|&c| c != '}').collect::<String>();
-    parse(&body)
+    parse(scope, &body)
 }
 
 /// Assumes a preceeding '@if' or '@elif' has already been consumed.
 /// Captures @if/@elif <expr> { <body> }.
-fn capture_if_stmt(chars: &mut impl Iterator<Item = char>) -> IfStmt {
+fn capture_if_stmt(scope: &mut rhai::Scope, chars: &mut impl Iterator<Item = char>) -> IfStmt {
     let expr = chars.by_ref().take_while(|&c| c != '{').collect::<String>();
-    let body = capture_body(chars);
+    let body = capture_body(scope, chars);
     IfStmt { expr, body }
 }
 
 /// Assumes a preceeding '@if' has already been consumed.
 /// Captures @if <expr> { <body> } [@elif  <expr> { <body> }]* [@else { <body> }]
-fn capture_if_chain_stmt(chars: &mut Peekable<impl Iterator<Item = char> + Clone>) -> IfChainStmt {
-    let head = capture_if_stmt(chars);
+fn capture_if_chain_stmt(
+    scope: &mut rhai::Scope,
+    chars: &mut Peekable<impl Iterator<Item = char> + Clone>,
+) -> IfChainStmt {
+    let head = capture_if_stmt(scope, chars);
 
     let mut stmt = IfChainStmt {
         ifs: vec![head],
@@ -112,7 +120,7 @@ fn capture_if_chain_stmt(chars: &mut Peekable<impl Iterator<Item = char> + Clone
                 // no longer need to look ahead
                 *chars = look_ahead;
 
-                let elif = capture_if_stmt(chars);
+                let elif = capture_if_stmt(scope, chars);
                 stmt.ifs.push(elif);
             }
             "else" => {
@@ -122,7 +130,7 @@ fn capture_if_chain_stmt(chars: &mut Peekable<impl Iterator<Item = char> + Clone
                 // consume until '{'
                 chars.by_ref().take_while(|&c| c != '{').for_each(drop);
 
-                let body = capture_body(chars);
+                let body = capture_body(scope, chars);
                 stmt.tail = Some(body);
 
                 // no more elif or else
