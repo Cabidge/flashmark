@@ -269,7 +269,7 @@ mod tests {
     #[test]
     fn if_expression() {
         let mut scope = rhai::Scope::new();
-        scope.push("x", 1);
+        scope.push("x", 1_i64);
         let input = "@if x == 1 { 1 } @else { 2 }";
         let expected = " 1 ";
         let actual = super::parse(&mut scope, input);
