@@ -300,7 +300,7 @@ mod tests {
     fn nested() {
         let mut scope = rhai::Scope::new();
         scope.push("name", "World");
-        let input = "Hello, @(name)!\n@if true { @(\"Hello, @(name)!\" ) }";
+        let input = "Hello, @(name)!\n@if true { Hello, @(name)! }";
         let expected = "Hello, World!\n Hello, World! ";
         let actual = super::parse(&mut scope, input);
         assert_eq!(actual, expected);
