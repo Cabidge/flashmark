@@ -129,7 +129,7 @@ fn capture_if_chain_stmt(
             break;
         }
 
-        let keyword = capture_keyword(chars);
+        let keyword = capture_keyword(&mut look_ahead);
 
         match keyword.as_str() {
             "elif" => {
