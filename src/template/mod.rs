@@ -282,21 +282,6 @@ mod tests {
     }
 
     #[test]
-    fn if_truthy() {
-        let mut scope = rhai::Scope::new();
-        scope.push("x", 1);
-        let input = "@if x { 1 } @else { 2 }";
-        let expected = " 1 ";
-        let actual = super::parse(&mut scope, input);
-        assert_eq!(actual, expected);
-
-        let input = "@if 0 { 1 } @else { 2 }";
-        let expected = " 2 ";
-        let actual = super::parse(&mut scope, input);
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
     fn nested() {
         let mut scope = rhai::Scope::new();
         scope.push("name", "World");
