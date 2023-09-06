@@ -227,4 +227,82 @@ mod tests {
         let actual = super::parse(&mut scope, input);
         assert_eq!(actual, expected);
     }
+
+    #[test]
+    fn if_elif() {
+        let mut scope = rhai::Scope::new();
+        let input = "@if true { 1 } @elif true { 2 }";
+        let expected = " 1 ";
+        let actual = super::parse(&mut scope, input);
+        assert_eq!(actual, expected);
+
+        let input = "@if false { 1 } @elif true { 2 }";
+        let expected = " 2 ";
+        let actual = super::parse(&mut scope, input);
+        assert_eq!(actual, expected);
+
+        let input = "@if false { 1 } @elif false { 2 }";
+        let expected = "";
+        let actual = super::parse(&mut scope, input);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn if_elif_else() {
+        let mut scope = rhai::Scope::new();
+        let input = "@if true { 1 } @elif true { 2 } @else { 3 }";
+        let expected = " 1 ";
+        let actual = super::parse(&mut scope, input);
+        assert_eq!(actual, expected);
+
+        let input = "@if false { 1 } @elif true { 2 } @else { 3 }";
+        let expected = " 2 ";
+        let actual = super::parse(&mut scope, input);
+        assert_eq!(actual, expected);
+
+        let input = "@if false { 1 } @elif false { 2 } @else { 3 }";
+        let expected = " 3 ";
+        let actual = super::parse(&mut scope, input);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn if_expression() {
+        let mut scope = rhai::Scope::new();
+        scope.push("x", 1);
+        let input = "@if x == 1 { 1 } @else { 2 }";
+        let expected = " 1 ";
+        let actual = super::parse(&mut scope, input);
+        assert_eq!(actual, expected);
+
+        let input = "@if x == 2 { 1 } @else { 2 }";
+        let expected = " 2 ";
+        let actual = super::parse(&mut scope, input);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn if_truthy() {
+        let mut scope = rhai::Scope::new();
+        scope.push("x", 1);
+        let input = "@if x { 1 } @else { 2 }";
+        let expected = " 1 ";
+        let actual = super::parse(&mut scope, input);
+        assert_eq!(actual, expected);
+
+        let input = "@if 0 { 1 } @else { 2 }";
+        let expected = " 2 ";
+        let actual = super::parse(&mut scope, input);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn nested() {
+        let mut scope = rhai::Scope::new();
+        scope.push("name", "World");
+        let input = "Hello, @(name)!\n@if true { @(\"Hello, @(name)!\" ) }";
+        let expected = "Hello, World!\n Hello, World! ";
+        let actual = super::parse(&mut scope, input);
+        assert_eq!(actual, expected);
+    }
 }
