@@ -42,16 +42,29 @@ pub fn parse(scope: &mut rhai::Scope, input: &str) -> String {
                     "if" => {
                         let stmt = capture_if_chain_stmt(scope, &mut chars);
 
-                        // TODO: evaluate if chain
-                        for stmt in stmt.ifs {
-                            output.push_str(&format!(
-                                "[if]({expr:?}) {{ {body:?} }}",
-                                expr = stmt.expr,
-                                body = stmt.body
-                            ));
-                        }
-                        if let Some(body) = stmt.tail {
-                            output.push_str(&format!("[else] {{ {body:?} }}"));
+                        let engine = new_engine();
+                        let try_else = 'check_ifs: {
+                            for stmt in stmt.ifs {
+                                match engine.eval_expression_with_scope::<bool>(scope, &stmt.expr) {
+                                    Ok(true) => {
+                                        output.push_str(&stmt.body);
+                                        break 'check_ifs false;
+                                    }
+                                    Ok(false) => continue,
+                                    Err(err) => {
+                                        output.push_str(&format!("Error: {}", err));
+                                        break 'check_ifs false;
+                                    }
+                                }
+                            }
+
+                            true
+                        };
+
+                        if try_else {
+                            if let Some(body) = stmt.tail {
+                                output.push_str(&body);
+                            }
                         }
                     }
                     // not a keyword
@@ -183,6 +196,34 @@ mod tests {
         scope.push("y", 2);
         let input = "@(x) + @(y) = @(x + y)";
         let expected = "1 + 2 = 3";
+        let actual = super::parse(&mut scope, input);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn if_true_and_false() {
+        let mut scope = rhai::Scope::new();
+        let input = "@if true { true }";
+        let expected = " true ";
+        let actual = super::parse(&mut scope, input);
+        assert_eq!(actual, expected);
+
+        let input = "@if false { true }";
+        let expected = "";
+        let actual = super::parse(&mut scope, input);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn if_else() {
+        let mut scope = rhai::Scope::new();
+        let input = "@if true { true } @else { false }";
+        let expected = " true ";
+        let actual = super::parse(&mut scope, input);
+        assert_eq!(actual, expected);
+
+        let input = "@if false { true } @else { false }";
+        let expected = " false ";
         let actual = super::parse(&mut scope, input);
         assert_eq!(actual, expected);
     }
