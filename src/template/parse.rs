@@ -46,6 +46,16 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse_stmt(&mut self) -> Option<Result<Stmt, rhai::ParseError>> {
+        let (res, next_state) = self.step();
+
+        if let Some(next_state) = next_state {
+            self.current_state = next_state;
+        }
+
+        res
+    }
+
+    fn step(&mut self) -> (Option<Result<Stmt, rhai::ParseError>>, Option<ParserState>) {
         match self.current_state {
             ParserState::Literal(ref mut literal) => {
                 if let Some(c) = self.chars.next() {
@@ -53,8 +63,7 @@ impl<'a> Parser<'a> {
                         // capture expression
                         '@' if self.chars.peek().copied() == Some('(') => {
                             let literal = std::mem::take(literal);
-                            self.current_state = ParserState::Expr;
-                            Some(Ok(Stmt::Literal(literal)))
+                            (Some(Ok(Stmt::Literal(literal))), Some(ParserState::Expr))
                         }
                         // capture keyword
                         '@' if self.chars.peek().is_some_and(|c| c.is_alphabetic()) => {
@@ -63,27 +72,25 @@ impl<'a> Parser<'a> {
                             match keyword.as_str() {
                                 "if" => {
                                     let stmt = Stmt::Literal(std::mem::take(literal));
-
-                                    self.current_state = ParserState::If;
-                                    Some(Ok(stmt))
+                                    (Some(Ok(stmt)), Some(ParserState::If))
                                 }
                                 _ => {
                                     literal.push(c);
                                     literal.push_str(&keyword);
                                     literal.push(' ');
-                                    None
+
+                                    (None, None)
                                 }
                             }
                         }
                         _ => {
                             literal.push(c);
-                            self.parse_stmt()
+                            (self.parse_stmt(), None)
                         }
                     }
                 } else {
                     let literal = std::mem::take(literal);
-                    self.current_state = ParserState::End;
-                    Some(Ok(Stmt::Literal(literal)))
+                    (Some(Ok(Stmt::Literal(literal))), Some(ParserState::End))
                 }
             }
             ParserState::Expr => {
@@ -99,16 +106,13 @@ impl<'a> Parser<'a> {
                     .compile_expression_with_scope(self.scope, expr)
                     .map(Stmt::Expr);
 
-                self.current_state = ParserState::Literal(String::new());
-
-                Some(stmt)
+                (Some(stmt), Some(ParserState::Literal(String::new())))
             }
             ParserState::If => {
                 let res = capture_if_chain_stmt(self.scope, &mut self.chars).map(Stmt::If);
-                self.current_state = ParserState::Literal(String::new());
-                Some(res)
+                (Some(res), Some(ParserState::Literal(String::new())))
             }
-            ParserState::End => None,
+            ParserState::End => (None, None),
         }
     }
 }
