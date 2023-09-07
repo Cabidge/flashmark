@@ -20,6 +20,8 @@ pub struct IfStmt {
     pub body: Block,
 }
 
+type CharStream<'a> = Peekable<std::str::Chars<'a>>;
+
 // Expressions - @(<expr>)
 // If - @if <expr> { <body> } [@elif  <expr> { <body> }]* [@else { <body> }]
 pub fn parse(scope: &rhai::Scope, input: &str) -> Block {
@@ -77,7 +79,7 @@ pub fn parse(scope: &rhai::Scope, input: &str) -> Block {
 
 /// Assumes the opening '@' has already been consumed.
 /// Captures @<keyword>.
-fn capture_keyword(chars: &mut Peekable<impl Iterator<Item = char>>) -> String {
+fn capture_keyword(chars: &mut CharStream) -> String {
     let mut keyword = String::new();
     while let Some(c) = chars.next_if(|c| c.is_alphabetic()) {
         keyword.push(c);
@@ -89,7 +91,7 @@ fn capture_keyword(chars: &mut Peekable<impl Iterator<Item = char>>) -> String {
 /// Captures { <body> }.
 ///
 /// Returns the parsed body.
-fn capture_body(scope: &rhai::Scope, chars: &mut impl Iterator<Item = char>) -> Block {
+fn capture_body(scope: &rhai::Scope, chars: &mut CharStream) -> Block {
     let body = chars.take_while(|&c| c != '}').collect::<String>();
     parse(scope, &body)
 }
@@ -98,7 +100,7 @@ fn capture_body(scope: &rhai::Scope, chars: &mut impl Iterator<Item = char>) -> 
 /// Captures @if/@elif <expr> { <body> }.
 fn capture_if_stmt(
     scope: &rhai::Scope,
-    chars: &mut impl Iterator<Item = char>,
+    chars: &mut CharStream,
 ) -> Result<IfStmt, rhai::ParseError> {
     let expr = chars.by_ref().take_while(|&c| c != '{').collect::<String>();
     let expr = new_engine().compile_expression_with_scope(scope, expr)?;
@@ -112,7 +114,7 @@ fn capture_if_stmt(
 /// Captures @if <expr> { <body> } [@elif  <expr> { <body> }]* [@else { <body> }]
 fn capture_if_chain_stmt(
     scope: &rhai::Scope,
-    chars: &mut Peekable<impl Iterator<Item = char> + Clone>,
+    chars: &mut CharStream,
 ) -> Result<IfChainStmt, rhai::ParseError> {
     let head = capture_if_stmt(scope, chars)?;
 
