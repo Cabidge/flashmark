@@ -4,6 +4,20 @@ use super::new_engine;
 
 pub type Block = Vec<Result<Stmt, rhai::ParseError>>;
 
+pub struct Parser<'a> {
+    pub scope: &'a rhai::Scope<'static>,
+    pub chars: CharStream<'a>,
+    current_state: ParserState,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ParserState {
+    Literal(String),
+    Expr,
+    If,
+    End,
+}
+
 pub enum Stmt {
     Expr(rhai::AST),
     If(IfChainStmt),
@@ -22,59 +36,102 @@ pub struct IfStmt {
 
 type CharStream<'a> = Peekable<std::str::Chars<'a>>;
 
-// Expressions - @(<expr>)
-// If - @if <expr> { <body> } [@elif  <expr> { <body> }]* [@else { <body> }]
-pub fn parse(scope: &rhai::Scope, input: &str) -> Block {
-    let mut block = vec![];
-
-    let mut literal = String::new();
-    let mut chars = input.chars().peekable();
-
-    while let Some(c) = chars.next() {
-        match c {
-            // capture expression
-            '@' if chars.peek().copied() == Some('(') => {
-                block.push(Ok(Stmt::Literal(std::mem::take(&mut literal)))); // push literal to block
-
-                chars.next(); // consume the '('
-
-                let expr = chars.by_ref().take_while(|&c| c != ')').collect::<String>();
-
-                match new_engine().compile_expression_with_scope(scope, expr) {
-                    Ok(ast) => block.push(Ok(Stmt::Expr(ast))),
-                    Err(err) => block.push(Err(err)),
-                }
-            }
-            // capture keyword
-            '@' if chars.peek().is_some_and(|c| c.is_alphabetic()) => {
-                let keyword = capture_keyword(&mut chars);
-
-                match keyword.as_str() {
-                    "if" => {
-                        block.push(Ok(Stmt::Literal(std::mem::take(&mut literal)))); // push literal to block
-
-                        match capture_if_chain_stmt(scope, &mut chars) {
-                            Ok(stmt) => block.push(Ok(Stmt::If(stmt))),
-                            Err(err) => block.push(Err(err)),
-                        }
-                    }
-                    // not a keyword
-                    _ => {
-                        literal.push(c);
-                        literal.push_str(&keyword);
-                        literal.push(' ');
-                    }
-                }
-            }
-            _ => literal.push(c),
+impl<'a> Parser<'a> {
+    pub fn new(scope: &'a rhai::Scope<'static>, input: &'a str) -> Self {
+        Self {
+            scope,
+            chars: input.chars().peekable(),
+            current_state: ParserState::Literal(String::new()),
         }
     }
 
-    if !literal.is_empty() {
-        block.push(Ok(Stmt::Literal(literal)));
-    }
+    pub fn parse_stmt(&mut self) -> Option<Result<Stmt, rhai::ParseError>> {
+        match self.current_state {
+            ParserState::Literal(ref mut literal) => {
+                if let Some(c) = self.chars.next() {
+                    match c {
+                        // capture expression
+                        '@' if self.chars.peek().copied() == Some('(') => {
+                            let literal = std::mem::take(literal);
+                            self.current_state = ParserState::Expr;
+                            Some(Ok(Stmt::Literal(literal)))
+                        }
+                        // capture keyword
+                        '@' if self.chars.peek().is_some_and(|c| c.is_alphabetic()) => {
+                            let keyword = capture_keyword(&mut self.chars);
 
-    block
+                            match keyword.as_str() {
+                                "if" => {
+                                    let stmt = Stmt::Literal(std::mem::take(literal));
+
+                                    self.current_state = ParserState::If;
+                                    Some(Ok(stmt))
+                                }
+                                _ => {
+                                    literal.push(c);
+                                    literal.push_str(&keyword);
+                                    literal.push(' ');
+                                    None
+                                }
+                            }
+                        }
+                        _ => {
+                            literal.push(c);
+                            self.parse_stmt()
+                        }
+                    }
+                } else {
+                    let literal = std::mem::take(literal);
+                    self.current_state = ParserState::End;
+                    Some(Ok(Stmt::Literal(literal)))
+                }
+            }
+            ParserState::Expr => {
+                self.chars.next(); // consume the '('
+
+                let expr = self
+                    .chars
+                    .by_ref()
+                    .take_while(|&c| c != ')')
+                    .collect::<String>();
+
+                let stmt = new_engine()
+                    .compile_expression_with_scope(self.scope, expr)
+                    .map(Stmt::Expr);
+
+                self.current_state = ParserState::Literal(String::new());
+
+                Some(stmt)
+            }
+            ParserState::If => {
+                let res = capture_if_chain_stmt(self.scope, &mut self.chars).map(Stmt::If);
+                self.current_state = ParserState::Literal(String::new());
+                Some(res)
+            }
+            ParserState::End => None,
+        }
+    }
+}
+
+impl<'a> Iterator for Parser<'a> {
+    type Item = Result<Stmt, rhai::ParseError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // keep parsing until we get a statement or run out of characters
+        while self.current_state != ParserState::End {
+            if let Some(stmt) = self.parse_stmt() {
+                return Some(stmt);
+            }
+        }
+
+        None
+    }
+}
+
+// Expressions - @(<expr>)
+// If - @if <expr> { <body> } [@elif  <expr> { <body> }]* [@else { <body> }]
+pub fn parse(scope: &rhai::Scope<'static>, input: &str) -> Block {
+    Parser::new(scope, input).collect()
 }
 
 /// Assumes the opening '@' has already been consumed.
@@ -91,7 +148,7 @@ fn capture_keyword(chars: &mut CharStream) -> String {
 /// Captures { <body> }.
 ///
 /// Returns the parsed body.
-fn capture_body(scope: &rhai::Scope, chars: &mut CharStream) -> Block {
+fn capture_body(scope: &rhai::Scope<'static>, chars: &mut CharStream) -> Block {
     let body = chars.take_while(|&c| c != '}').collect::<String>();
     parse(scope, &body)
 }
@@ -99,7 +156,7 @@ fn capture_body(scope: &rhai::Scope, chars: &mut CharStream) -> Block {
 /// Assumes a preceeding '@if' or '@elif' has already been consumed.
 /// Captures @if/@elif <expr> { <body> }.
 fn capture_if_stmt(
-    scope: &rhai::Scope,
+    scope: &rhai::Scope<'static>,
     chars: &mut CharStream,
 ) -> Result<IfStmt, rhai::ParseError> {
     let expr = chars.by_ref().take_while(|&c| c != '{').collect::<String>();
@@ -113,7 +170,7 @@ fn capture_if_stmt(
 /// Assumes a preceeding '@if' has already been consumed.
 /// Captures @if <expr> { <body> } [@elif  <expr> { <body> }]* [@else { <body> }]
 fn capture_if_chain_stmt(
-    scope: &rhai::Scope,
+    scope: &rhai::Scope<'static>,
     chars: &mut CharStream,
 ) -> Result<IfChainStmt, rhai::ParseError> {
     let head = capture_if_stmt(scope, chars)?;
