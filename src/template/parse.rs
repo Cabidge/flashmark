@@ -22,7 +22,7 @@ pub struct IfChainStmt {
 
 // Expressions - @(<expr>)
 // If - @if <expr> { <body> } [@elif  <expr> { <body> }]* [@else { <body> }]
-pub fn parse(scope: &mut rhai::Scope, input: &str) -> Block {
+pub fn parse(scope: &rhai::Scope, input: &str) -> Block {
     let mut block = vec![];
 
     let mut literal = String::new();
@@ -89,7 +89,7 @@ fn capture_keyword(chars: &mut Peekable<impl Iterator<Item = char>>) -> String {
 /// Captures { <body> }.
 ///
 /// Returns the parsed body.
-fn capture_body(scope: &mut rhai::Scope, chars: &mut impl Iterator<Item = char>) -> Block {
+fn capture_body(scope: &rhai::Scope, chars: &mut impl Iterator<Item = char>) -> Block {
     let body = chars.take_while(|&c| c != '}').collect::<String>();
     parse(scope, &body)
 }
@@ -97,7 +97,7 @@ fn capture_body(scope: &mut rhai::Scope, chars: &mut impl Iterator<Item = char>)
 /// Assumes a preceeding '@if' or '@elif' has already been consumed.
 /// Captures @if/@elif <expr> { <body> }.
 fn capture_if_stmt(
-    scope: &mut rhai::Scope,
+    scope: &rhai::Scope,
     chars: &mut impl Iterator<Item = char>,
 ) -> Result<IfStmt, rhai::ParseError> {
     let expr = chars.by_ref().take_while(|&c| c != '{').collect::<String>();
@@ -111,7 +111,7 @@ fn capture_if_stmt(
 /// Assumes a preceeding '@if' has already been consumed.
 /// Captures @if <expr> { <body> } [@elif  <expr> { <body> }]* [@else { <body> }]
 fn capture_if_chain_stmt(
-    scope: &mut rhai::Scope,
+    scope: &rhai::Scope,
     chars: &mut Peekable<impl Iterator<Item = char> + Clone>,
 ) -> Result<IfChainStmt, rhai::ParseError> {
     let head = capture_if_stmt(scope, chars)?;
