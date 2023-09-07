@@ -7,8 +7,8 @@ use super::{
     parse::{Block, IfChainStmt, IfStmt},
 };
 
-pub struct Evaluator<'a, 'b, T: Write + 'a> {
-    pub scope: &'a mut rhai::Scope<'b>,
+pub struct Evaluator<'a, T: Write> {
+    pub scope: &'a mut rhai::Scope<'static>,
     pub write: T,
 }
 
@@ -22,8 +22,8 @@ enum Error {
     Parse(#[from] rhai::ParseError),
 }
 
-impl<'a, 'b, T: Write> Evaluator<'a, 'b, T> {
-    pub fn new(scope: &'a mut rhai::Scope<'b>, write: T) -> Self {
+impl<'a, T: Write> Evaluator<'a, T> {
+    pub fn new(scope: &'a mut rhai::Scope<'static>, write: T) -> Self {
         Self { scope, write }
     }
 

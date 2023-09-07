@@ -6,7 +6,7 @@ pub fn new_engine() -> rhai::Engine {
     rhai::Engine::new()
 }
 
-pub fn render(scope: &mut rhai::Scope, input: &str) -> String {
+pub fn render(scope: &mut rhai::Scope<'static>, input: &str) -> String {
     let block = parse::parse(scope, input);
 
     let mut output = String::new();
