@@ -2,10 +2,10 @@ use crate::template::parse::Stmt;
 
 use super::{
     new_engine,
-    parse::{IfChainStmt, IfStmt},
+    parse::{Block, IfChainStmt, IfStmt},
 };
 
-pub fn eval(scope: &mut rhai::Scope, block: super::parse::Block) -> String {
+pub fn eval(scope: &mut rhai::Scope, block: Block) -> String {
     let mut output = String::new();
 
     for stmt in block {
