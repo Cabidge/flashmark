@@ -8,5 +8,11 @@ pub fn new_engine() -> rhai::Engine {
 
 pub fn render(scope: &mut rhai::Scope, input: &str) -> String {
     let block = parse::parse(scope, input);
-    evaluate::eval(scope, block)
+
+    let mut output = String::new();
+
+    let mut evaluator = evaluate::Evaluator::new(scope, &mut output);
+    evaluator.eval(block).unwrap();
+
+    output
 }
