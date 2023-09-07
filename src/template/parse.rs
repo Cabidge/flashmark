@@ -10,14 +10,14 @@ pub enum Stmt {
     Literal(String),
 }
 
-pub struct IfStmt {
-    pub expr: rhai::AST,
-    pub body: Block,
-}
-
 pub struct IfChainStmt {
     pub ifs: Vec<IfStmt>,
     pub tail: Option<Block>,
+}
+
+pub struct IfStmt {
+    pub expr: rhai::AST,
+    pub body: Block,
 }
 
 // Expressions - @(<expr>)
