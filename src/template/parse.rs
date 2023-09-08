@@ -69,34 +69,34 @@ impl<'a> Parser<'a> {
 
         match current_state {
             ParserStep::Literal(mut literal) => {
-                if let Some(c) = state.chars.next() {
-                    match c {
-                        // capture expression
-                        '@' if state.chars.peek().copied() == Some('(') => {
-                            (Some(Ok(Stmt::Literal(literal))), Some(ParserStep::Expr))
-                        }
-                        // capture keyword
-                        '@' if state.chars.peek().is_some_and(|c| c.is_alphabetic()) => {
-                            let keyword = capture_keyword(&mut state.chars);
+                let Some(c) = state.chars.next() else {
+                    return (Some(Ok(Stmt::Literal(literal))), None);
+                };
 
-                            match keyword.as_str() {
-                                "if" => (Some(Ok(Stmt::Literal(literal))), Some(ParserStep::If)),
-                                _ => {
-                                    literal.push(c);
-                                    literal.push_str(&keyword);
-                                    literal.push(' ');
+                match c {
+                    // capture expression
+                    '@' if state.chars.peek().copied() == Some('(') => {
+                        (Some(Ok(Stmt::Literal(literal))), Some(ParserStep::Expr))
+                    }
+                    // capture keyword
+                    '@' if state.chars.peek().is_some_and(|c| c.is_alphabetic()) => {
+                        let keyword = capture_keyword(&mut state.chars);
 
-                                    (None, Some(ParserStep::Literal(literal)))
-                                }
+                        match keyword.as_str() {
+                            "if" => (Some(Ok(Stmt::Literal(literal))), Some(ParserStep::If)),
+                            _ => {
+                                literal.push(c);
+                                literal.push_str(&keyword);
+                                literal.push(' ');
+
+                                (None, Some(ParserStep::Literal(literal)))
                             }
                         }
-                        _ => {
-                            literal.push(c);
-                            (None, Some(ParserStep::Literal(literal)))
-                        }
                     }
-                } else {
-                    (Some(Ok(Stmt::Literal(literal))), None)
+                    _ => {
+                        literal.push(c);
+                        (None, Some(ParserStep::Literal(literal)))
+                    }
                 }
             }
             ParserStep::Expr => {
