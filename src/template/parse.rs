@@ -73,13 +73,11 @@ impl<'a> Parser<'a> {
                     return (Some(Ok(Stmt::Literal(literal))), None);
                 };
 
-                match c {
+                match (c, state.chars.peek().copied()) {
                     // capture expression
-                    '@' if state.chars.peek().copied() == Some('(') => {
-                        (Some(Ok(Stmt::Literal(literal))), Some(ParserStep::Expr))
-                    }
+                    ('@', Some('(')) => (Some(Ok(Stmt::Literal(literal))), Some(ParserStep::Expr)),
                     // capture keyword
-                    '@' if state.chars.peek().is_some_and(|c| c.is_alphabetic()) => {
+                    ('@', Some(c_next)) if c_next.is_alphabetic() => {
                         let keyword = capture_keyword(&mut state.chars);
 
                         match keyword.as_str() {
