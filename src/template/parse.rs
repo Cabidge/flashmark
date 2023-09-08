@@ -7,7 +7,7 @@ pub type Block = Vec<Result<Stmt, rhai::ParseError>>;
 pub struct Parser<'a> {
     pub scope: &'a rhai::Scope<'static>,
     pub chars: CharStream<'a>,
-    current_state: ParserState,
+    current_state: Option<ParserState>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -15,7 +15,6 @@ pub enum ParserState {
     Literal(String),
     Expr,
     If,
-    End,
 }
 
 pub enum Stmt {
@@ -41,78 +40,75 @@ impl<'a> Parser<'a> {
         Self {
             scope,
             chars: input.chars().peekable(),
-            current_state: ParserState::Literal(String::new()),
+            current_state: Some(ParserState::Literal(String::new())),
         }
     }
 
     pub fn parse_stmt(&mut self) -> Option<Result<Stmt, rhai::ParseError>> {
-        let (res, next_state) = self.step();
+        let current_state = self.current_state.take();
+        let (res, next_state) = Self::step(current_state, self.scope, &mut self.chars);
 
-        if let Some(next_state) = next_state {
-            self.current_state = next_state;
-        }
+        self.current_state = next_state;
 
         res
     }
 
-    fn step(&mut self) -> (Option<Result<Stmt, rhai::ParseError>>, Option<ParserState>) {
-        match self.current_state {
-            ParserState::Literal(ref mut literal) => {
-                if let Some(c) = self.chars.next() {
+    fn step(
+        current_state: Option<ParserState>,
+        scope: &rhai::Scope<'static>,
+        chars: &mut CharStream,
+    ) -> (Option<Result<Stmt, rhai::ParseError>>, Option<ParserState>) {
+        let Some(current_state) = current_state else {
+            return (None, None);
+        };
+
+        match current_state {
+            ParserState::Literal(mut literal) => {
+                if let Some(c) = chars.next() {
                     match c {
                         // capture expression
-                        '@' if self.chars.peek().copied() == Some('(') => {
-                            let literal = std::mem::take(literal);
+                        '@' if chars.peek().copied() == Some('(') => {
                             (Some(Ok(Stmt::Literal(literal))), Some(ParserState::Expr))
                         }
                         // capture keyword
-                        '@' if self.chars.peek().is_some_and(|c| c.is_alphabetic()) => {
-                            let keyword = capture_keyword(&mut self.chars);
+                        '@' if chars.peek().is_some_and(|c| c.is_alphabetic()) => {
+                            let keyword = capture_keyword(chars);
 
                             match keyword.as_str() {
-                                "if" => {
-                                    let stmt = Stmt::Literal(std::mem::take(literal));
-                                    (Some(Ok(stmt)), Some(ParserState::If))
-                                }
+                                "if" => (Some(Ok(Stmt::Literal(literal))), Some(ParserState::If)),
                                 _ => {
                                     literal.push(c);
                                     literal.push_str(&keyword);
                                     literal.push(' ');
 
-                                    (None, None)
+                                    (None, Some(ParserState::Literal(literal)))
                                 }
                             }
                         }
                         _ => {
                             literal.push(c);
-                            (self.parse_stmt(), None)
+                            (None, Some(ParserState::Literal(literal)))
                         }
                     }
                 } else {
-                    let literal = std::mem::take(literal);
-                    (Some(Ok(Stmt::Literal(literal))), Some(ParserState::End))
+                    (Some(Ok(Stmt::Literal(literal))), None)
                 }
             }
             ParserState::Expr => {
-                self.chars.next(); // consume the '('
+                chars.next(); // consume the '('
 
-                let expr = self
-                    .chars
-                    .by_ref()
-                    .take_while(|&c| c != ')')
-                    .collect::<String>();
+                let expr = chars.by_ref().take_while(|&c| c != ')').collect::<String>();
 
                 let stmt = new_engine()
-                    .compile_expression_with_scope(self.scope, expr)
+                    .compile_expression_with_scope(scope, expr)
                     .map(Stmt::Expr);
 
                 (Some(stmt), Some(ParserState::Literal(String::new())))
             }
             ParserState::If => {
-                let res = capture_if_chain_stmt(self.scope, &mut self.chars).map(Stmt::If);
+                let res = capture_if_chain_stmt(scope, chars).map(Stmt::If);
                 (Some(res), Some(ParserState::Literal(String::new())))
             }
-            ParserState::End => (None, None),
         }
     }
 }
@@ -122,13 +118,14 @@ impl<'a> Iterator for Parser<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         // keep parsing until we get a statement or run out of characters
-        while self.current_state != ParserState::End {
+        loop {
+            // if state is None, we've run out of characters
+            self.current_state.as_ref()?;
+
             if let Some(stmt) = self.parse_stmt() {
                 return Some(stmt);
             }
         }
-
-        None
     }
 }
 
