@@ -60,14 +60,14 @@ impl<'a> Parser<'a> {
     }
 
     fn step(
-        current_state: Option<ParserStep>,
+        current_step: Option<ParserStep>,
         state: &mut ParserState,
     ) -> (Option<Result<Stmt, rhai::ParseError>>, Option<ParserStep>) {
-        let Some(current_state) = current_state else {
+        let Some(current_step) = current_step else {
             return (None, None);
         };
 
-        match current_state {
+        match current_step {
             ParserStep::Literal(mut literal) => {
                 let Some(c) = state.chars.next() else {
                     return (Some(Ok(Stmt::Literal(literal))), None);
