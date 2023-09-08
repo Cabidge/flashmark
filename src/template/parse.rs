@@ -39,6 +39,8 @@ pub struct IfStmt {
 
 type CharStream<'a> = Peekable<std::str::Chars<'a>>;
 
+type StepResult = (Option<Result<Stmt, rhai::ParseError>>, Option<ParserStep>);
+
 impl<'a> Parser<'a> {
     pub fn new(scope: &'a rhai::Scope<'static>, input: &'a str) -> Self {
         Self {
@@ -59,44 +61,13 @@ impl<'a> Parser<'a> {
         res
     }
 
-    fn step(
-        current_step: Option<ParserStep>,
-        state: &mut ParserState,
-    ) -> (Option<Result<Stmt, rhai::ParseError>>, Option<ParserStep>) {
+    fn step(current_step: Option<ParserStep>, state: &mut ParserState) -> StepResult {
         let Some(current_step) = current_step else {
             return (None, None);
         };
 
         match current_step {
-            ParserStep::Literal(mut literal) => {
-                let Some(c) = state.chars.next() else {
-                    return (Some(Ok(Stmt::Literal(literal))), None);
-                };
-
-                match (c, state.chars.peek().copied()) {
-                    // capture expression
-                    ('@', Some('(')) => (Some(Ok(Stmt::Literal(literal))), Some(ParserStep::Expr)),
-                    // capture keyword
-                    ('@', Some(c_next)) if c_next.is_alphabetic() => {
-                        let keyword = capture_keyword(&mut state.chars);
-
-                        match keyword.as_str() {
-                            "if" => (Some(Ok(Stmt::Literal(literal))), Some(ParserStep::If)),
-                            _ => {
-                                literal.push(c);
-                                literal.push_str(&keyword);
-                                literal.push(' ');
-
-                                (None, Some(ParserStep::Literal(literal)))
-                            }
-                        }
-                    }
-                    _ => {
-                        literal.push(c);
-                        (None, Some(ParserStep::Literal(literal)))
-                    }
-                }
-            }
+            ParserStep::Literal(literal) => Self::step_literal(literal, state),
             ParserStep::Expr => {
                 state.chars.next(); // consume the '('
 
@@ -115,6 +86,36 @@ impl<'a> Parser<'a> {
             ParserStep::If => {
                 let res = capture_if_chain_stmt(state).map(Stmt::If);
                 (Some(res), Some(ParserStep::Literal(String::new())))
+            }
+        }
+    }
+
+    fn step_literal(mut literal: String, state: &mut ParserState) -> StepResult {
+        let Some(c) = state.chars.next() else {
+            return (Some(Ok(Stmt::Literal(literal))), None);
+        };
+
+        match (c, state.chars.peek().copied()) {
+            // capture expression
+            ('@', Some('(')) => (Some(Ok(Stmt::Literal(literal))), Some(ParserStep::Expr)),
+            // capture keyword
+            ('@', Some(c_next)) if c_next.is_alphabetic() => {
+                let keyword = capture_keyword(&mut state.chars);
+
+                match keyword.as_str() {
+                    "if" => (Some(Ok(Stmt::Literal(literal))), Some(ParserStep::If)),
+                    _ => {
+                        literal.push(c);
+                        literal.push_str(&keyword);
+                        literal.push(' ');
+
+                        (None, Some(ParserStep::Literal(literal)))
+                    }
+                }
+            }
+            _ => {
+                literal.push(c);
+                (None, Some(ParserStep::Literal(literal)))
             }
         }
     }
