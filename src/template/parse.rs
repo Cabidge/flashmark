@@ -55,11 +55,15 @@ type StepResult = (Option<Result<Stmt, rhai::ParseError>>, Option<ParserStep>);
 
 impl<'a> Parser<'a> {
     pub fn new(scope: &'a rhai::Scope<'static>, input: &'a str) -> Self {
+        Self::with_state(ParserState {
+            scope,
+            chars: input.chars().peekable(),
+        })
+    }
+
+    fn with_state(state: ParserState<'a>) -> Self {
         Self {
-            state: ParserState {
-                scope,
-                chars: input.chars().peekable(),
-            },
+            state,
             current_step: Some(ParserStep::Literal(String::new())),
         }
     }
@@ -180,13 +184,10 @@ fn capture_keyword(chars: &mut CharStream) -> String {
 ///
 /// Returns the parsed body.
 fn capture_body(state: &mut ParserState) -> Block {
-    let mut nested_parser = Parser {
-        state: ParserState {
-            scope: state.scope,
-            chars: state.chars.clone(),
-        },
-        current_step: Some(ParserStep::Literal(String::new())),
-    };
+    let mut nested_parser = Parser::with_state(ParserState {
+        scope: state.scope,
+        chars: state.chars.clone(),
+    });
 
     let mut block = vec![];
     while nested_parser.state.chars.peek().copied() != Some('}') {
