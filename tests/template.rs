@@ -129,3 +129,32 @@ fn nested() {
     let actual = render(&mut scope, input);
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn for_array() {
+    let mut scope = rhai::Scope::new();
+    let input = "@for x in [1, 2, 3] { @(x) }";
+    let expected = " 1  2  3 ";
+    let actual = render(&mut scope, input);
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn for_expression() {
+    let mut scope = rhai::Scope::new();
+    scope.push("arr", vec![1, 2, 3]);
+    let input = "@for x in arr { @(x) }";
+    let expected = " 1  2  3 ";
+    let actual = render(&mut scope, input);
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn for_nested() {
+    let mut scope = rhai::Scope::new();
+    scope.push("arr", vec![1, 2, 3]);
+    let input = "@for x in arr { @for y in arr { (@(x), @(y)) } }";
+    let expected = " (1, 1)  (1, 2)  (1, 3)  (2, 1)  (2, 2)  (2, 3)  (3, 1)  (3, 2)  (3, 3) ";
+    let actual = render(&mut scope, input);
+    assert_eq!(actual, expected);
+}
