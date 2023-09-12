@@ -21,17 +21,20 @@ pub enum ParserStep {
     If,
 }
 
+#[derive(Clone)]
 pub enum Stmt {
     Expr(rhai::AST),
     If(IfChainStmt),
     Literal(String),
 }
 
+#[derive(Clone)]
 pub struct IfChainStmt {
     pub ifs: Vec<IfStmt>,
     pub tail: Option<Block>,
 }
 
+#[derive(Clone)]
 pub struct IfStmt {
     pub expr: rhai::AST,
     pub body: Block,
