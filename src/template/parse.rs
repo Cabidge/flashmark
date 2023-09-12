@@ -129,16 +129,18 @@ impl<'a> Parser<'a> {
             ('@', Some(c_next)) if c_next.is_alphabetic() => {
                 let keyword = capture_keyword(&mut state.chars);
 
-                match keyword.as_str() {
-                    "if" => (Some(Ok(Stmt::Literal(literal))), Some(ParserStep::If)),
-                    "for" => (Some(Ok(Stmt::Literal(literal))), Some(ParserStep::For)),
-                    _ => {
-                        literal.push(c);
-                        literal.push_str(&keyword);
-                        literal.push(' ');
+                let next_state = match keyword.as_str() {
+                    "if" => Some(ParserStep::If),
+                    "for" => Some(ParserStep::For),
+                    _ => None,
+                };
 
-                        (None, Some(ParserStep::Literal(literal)))
-                    }
+                if let Some(state) = next_state {
+                    (Some(Ok(Stmt::Literal(literal))), Some(state))
+                } else {
+                    use std::fmt::Write;
+                    write!(literal, "{c}{keyword} ").expect("String should not fail to write");
+                    (None, Some(ParserStep::Literal(literal)))
                 }
             }
             _ => {
