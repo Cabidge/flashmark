@@ -4,11 +4,13 @@ use super::new_engine;
 
 pub type Block = Vec<Result<Stmt, rhai::ParseError>>;
 
+#[derive(Debug, Clone)]
 pub struct Parser<'a> {
     pub state: ParserState<'a>,
     current_step: Option<ParserStep>,
 }
 
+#[derive(Debug, Clone)]
 pub struct ParserState<'a> {
     pub scope: &'a rhai::Scope<'static>,
     pub chars: CharStream<'a>,
