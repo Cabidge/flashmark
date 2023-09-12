@@ -260,7 +260,7 @@ fn capture_for_stmt(state: &mut ParserState) -> Result<ForStmt, rhai::ParseError
         .take_while(|&c| c != '{')
         .collect::<String>();
 
-    let Some((name, expr)) = header.split_once(" in ") else {
+    let Some((name, expr)) = header.trim().split_once(" in ") else {
         let err_type = rhai::ParseErrorType::MissingToken(String::from("in"), header);
         return Err(rhai::ParseError(err_type.into(), rhai::Position::NONE));
     };
