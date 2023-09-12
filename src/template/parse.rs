@@ -186,10 +186,7 @@ fn capture_keyword(chars: &mut CharStream) -> String {
 ///
 /// Returns the parsed body.
 fn capture_body(state: &mut ParserState) -> Block {
-    let mut nested_parser = Parser::with_state(ParserState {
-        scope: state.scope,
-        chars: state.chars.clone(),
-    });
+    let mut nested_parser = Parser::with_state((*state).clone());
 
     let mut block = vec![];
     while nested_parser.state.chars.peek().copied() != Some('}') {
@@ -210,7 +207,8 @@ fn capture_body(state: &mut ParserState) -> Block {
 
     nested_parser.state.chars.next(); // consume the '}'
 
-    state.chars = nested_parser.state.chars;
+    // outer parser continues from where the nested parser left off
+    *state = nested_parser.state;
 
     block
 }
