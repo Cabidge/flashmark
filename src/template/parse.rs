@@ -64,7 +64,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse_stmt(&mut self) -> Option<Result<Stmt, rhai::ParseError>> {
+    pub fn parse_step(&mut self) -> Option<Result<Stmt, rhai::ParseError>> {
         let current_state = self.current_step.take();
         let (res, next_state) = Self::step(current_state, &mut self.state);
 
@@ -152,7 +152,7 @@ impl<'a> Iterator for Parser<'a> {
             // if state is None, we've run out of characters
             self.current_step.as_ref()?;
 
-            if let Some(stmt) = self.parse_stmt() {
+            if let Some(stmt) = self.parse_step() {
                 return Some(stmt);
             }
         }
@@ -194,7 +194,7 @@ fn capture_body(state: &mut ParserState) -> Block {
             break;
         }
 
-        if let Some(stmt) = nested_parser.parse_stmt() {
+        if let Some(stmt) = nested_parser.parse_step() {
             block.push(stmt);
         }
     }
