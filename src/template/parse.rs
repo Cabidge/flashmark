@@ -70,7 +70,12 @@ impl<'a> Parser<'a> {
 
         self.current_step = next_state;
 
-        res
+        // don't emit empty literals
+        if matches!(&res, Some(Ok(Stmt::Literal(lit))) if lit.is_empty()) {
+            None
+        } else {
+            res
+        }
     }
 
     fn step(current_step: Option<ParserStep>, state: &mut ParserState) -> StepResult {
