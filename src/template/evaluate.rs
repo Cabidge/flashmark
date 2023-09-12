@@ -4,7 +4,7 @@ use crate::template::parse::Stmt;
 
 use super::{
     new_engine,
-    parse::{Block, IfChainStmt, IfStmt},
+    parse::{Block, ForStmt, IfChainStmt, IfStmt},
 };
 
 pub struct Evaluator<'a, T: Write> {
@@ -62,6 +62,17 @@ impl<'a, T: Write> Evaluator<'a, T> {
                 if let Some(block) = tail {
                     self.eval(block)?;
                 }
+            }
+            Stmt::For(ForStmt { name, expr, body }) => {
+                let iter = new_engine().eval_ast_with_scope::<rhai::Array>(self.scope, &expr)?;
+
+                let rewind_point = self.scope.len();
+                self.scope.push(&name, rhai::Dynamic::UNIT);
+                for value in iter {
+                    self.scope.set_value(&name, value);
+                    self.eval(body.clone())?;
+                }
+                self.scope.rewind(rewind_point);
             }
         }
 

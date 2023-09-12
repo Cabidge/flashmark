@@ -25,6 +25,7 @@ pub enum ParserStep {
 pub enum Stmt {
     Expr(rhai::AST),
     If(IfChainStmt),
+    For(ForStmt),
     Literal(String),
 }
 
@@ -36,6 +37,13 @@ pub struct IfChainStmt {
 
 #[derive(Clone)]
 pub struct IfStmt {
+    pub expr: rhai::AST,
+    pub body: Block,
+}
+
+#[derive(Clone)]
+pub struct ForStmt {
+    pub name: String,
     pub expr: rhai::AST,
     pub body: Block,
 }
