@@ -99,7 +99,10 @@ impl<'a> Parser<'a> {
                 let res = capture_if_chain_stmt(state).map(Stmt::If);
                 (Some(res), Some(ParserStep::Literal(String::new())))
             }
-            ParserStep::For => todo!(),
+            ParserStep::For => {
+                let res = capture_for_stmt(state).map(Stmt::For);
+                (Some(res), Some(ParserStep::Literal(String::new())))
+            }
         }
     }
 
@@ -246,6 +249,31 @@ fn capture_if_chain_stmt(state: &mut ParserState) -> Result<IfChainStmt, rhai::P
     }
 
     Ok(stmt)
+}
+
+/// Assumes a preceeding '@for' has already been consumed.
+/// Captures @for <name> in <expr> { <body> }.
+fn capture_for_stmt(state: &mut ParserState) -> Result<ForStmt, rhai::ParseError> {
+    let header = state
+        .chars
+        .by_ref()
+        .take_while(|&c| c != '{')
+        .collect::<String>();
+
+    let Some((name, expr)) = header.split_once(" in ") else {
+        let err_type = rhai::ParseErrorType::MissingToken(String::from("in"), header);
+        return Err(rhai::ParseError(err_type.into(), rhai::Position::NONE));
+    };
+
+    let expr = new_engine().compile_expression_with_scope(state.scope, expr)?;
+
+    let body = capture_body(state);
+
+    Ok(ForStmt {
+        name: name.to_string(),
+        expr,
+        body,
+    })
 }
 
 #[cfg(test)]
