@@ -142,7 +142,8 @@ fn for_array() {
 #[test]
 fn for_expression() {
     let mut scope = rhai::Scope::new();
-    scope.push("arr", vec![1, 2, 3]);
+    let arr: rhai::Array = vec![1.into(), 2.into(), 3.into()];
+    scope.push("arr", arr);
     let input = "@for x in arr { @(x) }";
     let expected = " 1  2  3 ";
     let actual = render(&mut scope, input);
@@ -152,8 +153,9 @@ fn for_expression() {
 #[test]
 fn for_nested() {
     let mut scope = rhai::Scope::new();
-    scope.push("arr", vec![1, 2, 3]);
-    let input = "@for x in arr { @for y in arr { (@(x), @(y)) } }";
+    let arr: rhai::Array = vec![1.into(), 2.into(), 3.into()];
+    scope.push("arr", arr);
+    let input = "@for x in arr {@for y in arr { (@(x), @(y)) }}";
     let expected = " (1, 1)  (1, 2)  (1, 3)  (2, 1)  (2, 2)  (2, 3)  (3, 1)  (3, 2)  (3, 3) ";
     let actual = render(&mut scope, input);
     assert_eq!(actual, expected);
