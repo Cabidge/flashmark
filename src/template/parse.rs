@@ -19,6 +19,7 @@ pub enum ParserStep {
     Literal(String),
     Expr,
     If,
+    For,
 }
 
 #[derive(Clone)]
@@ -98,6 +99,7 @@ impl<'a> Parser<'a> {
                 let res = capture_if_chain_stmt(state).map(Stmt::If);
                 (Some(res), Some(ParserStep::Literal(String::new())))
             }
+            ParserStep::For => todo!(),
         }
     }
 
@@ -115,6 +117,7 @@ impl<'a> Parser<'a> {
 
                 match keyword.as_str() {
                     "if" => (Some(Ok(Stmt::Literal(literal))), Some(ParserStep::If)),
+                    "for" => (Some(Ok(Stmt::Literal(literal))), Some(ParserStep::For)),
                     _ => {
                         literal.push(c);
                         literal.push_str(&keyword);
