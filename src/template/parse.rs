@@ -175,13 +175,36 @@ fn capture_keyword(chars: &mut CharStream) -> String {
 ///
 /// Returns the parsed body.
 fn capture_body(state: &mut ParserState) -> Block {
-    let body = state
-        .chars
-        .by_ref()
-        .take_while(|&c| c != '}')
-        .collect::<String>();
+    let mut nested_parser = Parser {
+        state: ParserState {
+            scope: state.scope,
+            chars: state.chars.clone(),
+        },
+        current_step: Some(ParserStep::Literal(String::new())),
+    };
 
-    parse(state.scope, &body)
+    let mut block = vec![];
+    while nested_parser.state.chars.peek().copied() != Some('}') {
+        if nested_parser.current_step.is_none() {
+            break;
+        }
+
+        if let Some(stmt) = nested_parser.parse_stmt() {
+            block.push(stmt);
+        }
+    }
+
+    if let Some(ParserStep::Literal(literal)) = nested_parser.current_step {
+        if !literal.is_empty() {
+            block.push(Ok(Stmt::Literal(literal)));
+        }
+    }
+
+    nested_parser.state.chars.next(); // consume the '}'
+
+    state.chars = nested_parser.state.chars;
+
+    block
 }
 
 /// Assumes a preceeding '@if' or '@elif' has already been consumed.
