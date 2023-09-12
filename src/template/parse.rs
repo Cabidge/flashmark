@@ -189,7 +189,8 @@ fn capture_body(state: &mut ParserState) -> Block {
     let mut nested_parser = Parser::with_state((*state).clone());
 
     let mut block = vec![];
-    while nested_parser.state.chars.peek().copied() != Some('}') {
+    // parse until we consume the closing '}'
+    while nested_parser.state.chars.next_if(|&c| c == '}').is_none() {
         if nested_parser.current_step.is_none() {
             break;
         }
@@ -204,8 +205,6 @@ fn capture_body(state: &mut ParserState) -> Block {
             block.push(Ok(Stmt::Literal(literal)));
         }
     }
-
-    nested_parser.state.chars.next(); // consume the '}'
 
     // outer parser continues from where the nested parser left off
     *state = nested_parser.state;
