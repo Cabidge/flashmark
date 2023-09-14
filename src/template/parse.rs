@@ -54,6 +54,14 @@ type CharStream<'a> = Peekable<std::str::Chars<'a>>;
 
 type StepResult = (Option<Result<Stmt, rhai::ParseError>>, Option<ParserStep>);
 
+pub fn parse_front_matter(input: &str) -> (Option<&str>, &str) {
+    input
+        .strip_prefix("---\n")
+        .and_then(|stripped| stripped.split_once("---\n"))
+        .map(|(front, input)| (Some(front), input))
+        .unwrap_or((None, input))
+}
+
 impl<'a> Parser<'a> {
     pub fn new(engine: &'a rhai::Engine, scope: &'a rhai::Scope<'static>, input: &'a str) -> Self {
         Self::with_state(ParserState {

@@ -9,18 +9,12 @@ pub fn render(input: &str) -> String {
     render_with_engine(&new_engine(), input)
 }
 
-pub fn render_with_engine(engine: &rhai::Engine, mut input: &str) -> String {
+pub fn render_with_engine(engine: &rhai::Engine, input: &str) -> String {
     let mut scope = rhai::Scope::new();
 
-    // check for front matter code block
-    if let Some(stripped) = input.strip_prefix("---\n") {
-        // TODO: handle invalid format
-        let (front_matter, new_input) = stripped
-            .split_once("---\n")
-            .expect("front matter is not closed");
+    let (front_matter, input) = parse::parse_front_matter(input);
 
-        input = new_input;
-
+    if let Some(front_matter) = front_matter {
         // TODO: handle runtime error
         engine
             .run_with_scope(&mut scope, front_matter)
