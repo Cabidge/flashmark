@@ -294,11 +294,7 @@ fn capture_if_chain_stmt(state: &mut ParserState) -> Result<IfChainStmt, rhai::P
                 state.chars = look_ahead;
 
                 // consume until '{'
-                state
-                    .chars
-                    .by_ref()
-                    .take_while(|&c| c != '{')
-                    .for_each(drop);
+                state.chars.find(|&c| c == '{');
 
                 let body = capture_body(state);
                 stmt.tail = Some(body);
