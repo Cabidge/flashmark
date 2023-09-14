@@ -1,9 +1,12 @@
 pub mod evaluate;
 pub mod parse;
 
+pub fn new_engine() -> rhai::Engine {
+    rhai::Engine::new()
+}
+
 pub fn render(input: &str) -> Vec<String> {
-    let engine = rhai::Engine::new();
-    render_with_engine(&engine, input)
+    render_with_engine(&new_engine(), input)
 }
 
 pub fn render_with_engine(engine: &rhai::Engine, mut input: &str) -> Vec<String> {
