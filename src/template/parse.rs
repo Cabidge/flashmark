@@ -144,8 +144,8 @@ impl<'a> Parser<'a> {
                 if let Some(state) = next_state {
                     (Some(Ok(Stmt::Literal(literal))), Some(state))
                 } else {
-                    use std::fmt::Write;
-                    write!(literal, "{c}{keyword} ").expect("String should not fail to write");
+                    literal.push(c);
+                    literal.push_str(&keyword);
                     (None, Some(ParserStep::Literal(literal)))
                 }
             }
