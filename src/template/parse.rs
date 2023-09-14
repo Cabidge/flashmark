@@ -167,6 +167,15 @@ impl<'a> Iterator for Parser<'a> {
     }
 }
 
+impl ParserStep {
+    pub fn literal(self) -> Option<String> {
+        match self {
+            Self::Literal(lit) => Some(lit),
+            _ => None,
+        }
+    }
+}
+
 // Expressions - @(<expr>)
 // If - @if <expr> { <body> } [@elif  <expr> { <body> }]* [@else { <body> }]
 pub fn parse(scope: &rhai::Scope<'static>, input: &str) -> Block {
@@ -224,18 +233,19 @@ fn capture_body(state: &mut ParserState) -> Block {
     }
 
     // remove trailing newline
-    match nested_parser.current_step {
-        Some(ParserStep::Literal(mut literal)) if !literal.is_empty() => {
-            match literal.rsplit_once('\n') {
-                Some((before, after)) if after.chars().all(|c| c.is_whitespace()) => {
-                    literal.truncate(before.len());
-                }
-                _ => (),
-            }
-
-            block.push(Ok(Stmt::Literal(literal)));
+    if let Some(mut literal) = nested_parser
+        .current_step
+        .and_then(ParserStep::literal)
+        .filter(|s| !s.is_empty())
+    {
+        if let Some((before, _)) = literal
+            .rsplit_once('\n')
+            .filter(|(_, after)| after.trim().is_empty())
+        {
+            literal.truncate(before.len());
         }
-        _ => (),
+
+        block.push(Ok(Stmt::Literal(literal)));
     }
 
     // outer parser continues from where the nested parser left off
