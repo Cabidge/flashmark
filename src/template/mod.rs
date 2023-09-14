@@ -5,11 +5,11 @@ pub fn new_engine() -> rhai::Engine {
     rhai::Engine::new()
 }
 
-pub fn render(input: &str) -> Vec<String> {
+pub fn render(input: &str) -> String {
     render_with_engine(&new_engine(), input)
 }
 
-pub fn render_with_engine(engine: &rhai::Engine, mut input: &str) -> Vec<String> {
+pub fn render_with_engine(engine: &rhai::Engine, mut input: &str) -> String {
     let mut scope = rhai::Scope::new();
 
     // check for front matter code block
@@ -27,13 +27,10 @@ pub fn render_with_engine(engine: &rhai::Engine, mut input: &str) -> Vec<String>
             .expect("failed to run front matter");
     }
 
-    input
-        .split("---\n")
-        .map(|slide| render_slide(engine, &mut scope, slide))
-        .collect()
+    render_with_engine_and_scope(engine, &mut scope, input)
 }
 
-pub fn render_slide(
+pub fn render_with_engine_and_scope(
     engine: &rhai::Engine,
     scope: &mut rhai::Scope<'static>,
     input: &str,

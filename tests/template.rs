@@ -1,6 +1,6 @@
 fn test_render_slide(scope: &mut rhai::Scope<'static>, input: &str, expected: &str) {
     use flashmark::template;
-    let actual = template::render_slide(&template::new_engine(), scope, input);
+    let actual = template::render_with_engine_and_scope(&template::new_engine(), scope, input);
 
     assert_eq!(actual, expected);
 }
