@@ -1,3 +1,5 @@
+use indoc::indoc;
+
 fn test_render(input: &str, expected: &str) {
     let actual = flashmark::template::render(input);
     assert_eq!(actual, expected);
@@ -13,7 +15,13 @@ fn test_render_with_scope(scope: &mut rhai::Scope<'static>, input: &str, expecte
 #[test]
 fn front_matter() {
     test_render(
-        "---\nlet name = \"World\"\n---\nHello, @(name)!",
+        indoc! {r#"
+            ---
+            let name = "World"
+            ---
+            Hello, @(name)!
+        "#}
+        .trim_end(),
         "Hello, World!",
     );
 }
@@ -30,7 +38,7 @@ fn literal_with_at() {
 
 #[test]
 fn expression_string() {
-    test_render("Hello, @(\"World\")!", "Hello, World!");
+    test_render(r#"Hello, @("World")!"#, "Hello, World!");
 }
 
 #[test]
@@ -102,8 +110,16 @@ fn if_body_with_expression() {
 
     test_render_with_scope(
         &mut scope,
-        "Hello, @(name)!\n@if true { Hello, @(name)! }",
-        "Hello, World!\n Hello, World! ",
+        indoc! {"
+            Hello, @(name)!
+            @if true {Hello, @(name)!}
+        "}
+        .trim_end(),
+        indoc! {"
+            Hello, World!
+            Hello, World!
+        "}
+        .trim_end(),
     );
 }
 
