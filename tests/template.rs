@@ -17,7 +17,7 @@ fn front_matter() {
     test_render(
         indoc! {r#"
             ---
-            let name = "World"
+            let name = "World";
             ---
             Hello, @(name)!
         "#}
