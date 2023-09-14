@@ -8,4 +8,5 @@ edition = "2021"
 [dependencies]
 indoc = "2.0.3"
 rhai = { version = "1.15.1", features = ["internals"] }
+rhai-rand = "0.1.5"
 thiserror = "1.0.48"

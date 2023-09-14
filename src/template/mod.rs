@@ -2,7 +2,12 @@ pub mod evaluate;
 pub mod parse;
 
 pub fn new_engine() -> rhai::Engine {
-    rhai::Engine::new()
+    use rhai::packages::Package;
+
+    let mut engine = rhai::Engine::new();
+    engine.register_static_module("rand", rhai_rand::RandomPackage::new().as_shared_module());
+
+    engine
 }
 
 pub fn render(input: &str) -> String {
