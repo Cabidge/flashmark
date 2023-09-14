@@ -1,9 +1,33 @@
 pub mod evaluate;
 pub mod parse;
 
-// Create engine used to evaluate template scripts.
-pub fn new_engine() -> rhai::Engine {
-    rhai::Engine::new()
+pub fn render(input: &str) -> Vec<String> {
+    let engine = rhai::Engine::new();
+    render_with_engine(&engine, input)
+}
+
+pub fn render_with_engine(engine: &rhai::Engine, mut input: &str) -> Vec<String> {
+    let mut scope = rhai::Scope::new();
+
+    // check for front matter code block
+    if let Some(stripped) = input.strip_prefix("---\n") {
+        // TODO: handle invalid format
+        let (front_matter, new_input) = stripped
+            .split_once("---\n")
+            .expect("front matter is not closed");
+
+        input = new_input;
+
+        // TODO: handle runtime error
+        engine
+            .run_with_scope(&mut scope, front_matter)
+            .expect("failed to run front matter");
+    }
+
+    input
+        .split("---\n")
+        .map(|slide| render_slide(engine, &mut scope, slide))
+        .collect()
 }
 
 pub fn render_slide(
