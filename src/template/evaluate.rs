@@ -5,6 +5,7 @@ use crate::template::parse::Stmt;
 use super::parse::{Block, ForStmt, IfChainStmt, IfStmt};
 
 pub struct Evaluator<'a, T: Write> {
+    pub engine: &'a rhai::Engine,
     pub scope: &'a mut rhai::Scope<'static>,
     pub write: T,
 }
@@ -20,15 +21,19 @@ pub enum Error {
 }
 
 impl<'a, T: Write> Evaluator<'a, T> {
-    pub fn new(scope: &'a mut rhai::Scope<'static>, write: T) -> Self {
-        Self { scope, write }
+    pub fn new(engine: &'a rhai::Engine, scope: &'a mut rhai::Scope<'static>, write: T) -> Self {
+        Self {
+            engine,
+            scope,
+            write,
+        }
     }
 
     pub fn eval_ast<V: rhai::Variant + Clone>(
         &mut self,
         ast: &rhai::AST,
     ) -> Result<V, Box<rhai::EvalAltResult>> {
-        super::new_engine().eval_ast_with_scope::<V>(self.scope, ast)
+        self.engine.eval_ast_with_scope::<V>(self.scope, ast)
     }
 
     pub fn eval(&mut self, block: Block) -> Result<(), std::fmt::Error> {
