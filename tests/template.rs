@@ -88,7 +88,7 @@ fn if_newline() {
 }
 
 #[test]
-fn nested() {
+fn if_body_with_expression() {
     let mut scope = rhai::Scope::new();
     scope.push("name", "World");
 
