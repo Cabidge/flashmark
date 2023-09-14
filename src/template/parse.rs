@@ -1,7 +1,5 @@
 use std::iter::Peekable;
 
-use super::new_engine;
-
 pub type Block = Vec<Result<Stmt, rhai::ParseError>>;
 
 #[derive(Debug, Clone)]
@@ -100,9 +98,7 @@ impl<'a> Parser<'a> {
                     .take_while(|&c| c != ')')
                     .collect::<String>();
 
-                let stmt = new_engine()
-                    .compile_expression_with_scope(state.scope, expr)
-                    .map(Stmt::Expr);
+                let stmt = state.compile_expression(expr).map(Stmt::Expr);
 
                 (Some(stmt), Some(ParserStep::Literal(String::new())))
             }
@@ -164,6 +160,12 @@ impl<'a> Iterator for Parser<'a> {
                 return Some(stmt);
             }
         }
+    }
+}
+
+impl<'a> ParserState<'a> {
+    pub fn compile_expression(&self, expr: impl AsRef<str>) -> Result<rhai::AST, rhai::ParseError> {
+        super::new_engine().compile_expression_with_scope(self.scope, expr)
     }
 }
 
@@ -254,7 +256,8 @@ fn capture_if_stmt(state: &mut ParserState) -> Result<IfStmt, rhai::ParseError> 
         .by_ref()
         .take_while(|&c| c != '{')
         .collect::<String>();
-    let expr = new_engine().compile_expression_with_scope(state.scope, expr)?;
+
+    let expr = state.compile_expression(expr)?;
 
     let body = capture_body(state);
 
@@ -323,7 +326,7 @@ fn capture_for_stmt(state: &mut ParserState) -> Result<ForStmt, rhai::ParseError
         return Err(rhai::ParseError(err_type.into(), rhai::Position::NONE));
     };
 
-    let expr = new_engine().compile_expression_with_scope(state.scope, expr)?;
+    let expr = state.compile_expression(expr)?;
 
     let body = capture_body(state);
 
