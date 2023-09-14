@@ -2,10 +2,7 @@ use std::fmt::Write;
 
 use crate::template::parse::Stmt;
 
-use super::{
-    new_engine,
-    parse::{Block, ForStmt, IfChainStmt, IfStmt},
-};
+use super::parse::{Block, ForStmt, IfChainStmt, IfStmt};
 
 pub struct Evaluator<'a, T: Write> {
     pub scope: &'a mut rhai::Scope<'static>,
@@ -13,7 +10,7 @@ pub struct Evaluator<'a, T: Write> {
 }
 
 #[derive(thiserror::Error, Debug)]
-enum Error {
+pub enum Error {
     #[error("Format Error: {0}")]
     Fmt(#[from] std::fmt::Error),
     #[error("Eval Error: {0}")]
@@ -25,6 +22,13 @@ enum Error {
 impl<'a, T: Write> Evaluator<'a, T> {
     pub fn new(scope: &'a mut rhai::Scope<'static>, write: T) -> Self {
         Self { scope, write }
+    }
+
+    pub fn eval_ast<V: rhai::Variant + Clone>(
+        &mut self,
+        ast: &rhai::AST,
+    ) -> Result<V, Box<rhai::EvalAltResult>> {
+        super::new_engine().eval_ast_with_scope::<V>(self.scope, ast)
     }
 
     pub fn eval(&mut self, block: Block) -> Result<(), std::fmt::Error> {
@@ -48,12 +52,12 @@ impl<'a, T: Write> Evaluator<'a, T> {
         match stmt {
             Stmt::Literal(lit) => self.write.write_str(&lit)?,
             Stmt::Expr(expr) => {
-                let value = new_engine().eval_ast_with_scope::<rhai::Dynamic>(self.scope, &expr)?;
+                let value = self.eval_ast::<rhai::Dynamic>(&expr)?;
                 write!(self.write, "{}", value)?;
             }
             Stmt::If(IfChainStmt { ifs, tail }) => {
                 for IfStmt { expr, body } in ifs {
-                    if new_engine().eval_ast_with_scope::<bool>(self.scope, &expr)? {
+                    if self.eval_ast::<bool>(&expr)? {
                         self.eval(body)?;
                         return Ok(());
                     }
@@ -64,7 +68,7 @@ impl<'a, T: Write> Evaluator<'a, T> {
                 }
             }
             Stmt::For(ForStmt { name, expr, body }) => {
-                let iter = new_engine().eval_ast_with_scope::<rhai::Array>(self.scope, &expr)?;
+                let iter = self.eval_ast::<rhai::Array>(&expr)?;
 
                 let rewind_point = self.scope.len();
                 self.scope.push(&name, rhai::Dynamic::UNIT);
