@@ -1,11 +1,28 @@
 pub mod evaluate;
 pub mod parse;
 
-pub fn new_engine() -> rhai::Engine {
-    use rhai::packages::Package;
+struct ModuleResolver;
 
+impl rhai::ModuleResolver for ModuleResolver {
+    fn resolve(
+        &self,
+        _engine: &rhai::Engine,
+        _source: Option<&str>,
+        path: &str,
+        pos: rhai::Position,
+    ) -> Result<std::rc::Rc<rhai::Module>, Box<rhai::EvalAltResult>> {
+        use rhai::packages::Package;
+
+        match path {
+            "rand" => Ok(rhai_rand::RandomPackage::new().as_shared_module()),
+            _ => Err(rhai::EvalAltResult::ErrorModuleNotFound(path.into(), pos).into()),
+        }
+    }
+}
+
+pub fn new_engine() -> rhai::Engine {
     let mut engine = rhai::Engine::new();
-    engine.register_static_module("rand", rhai_rand::RandomPackage::new().as_shared_module());
+    engine.set_module_resolver(ModuleResolver);
 
     engine
 }
