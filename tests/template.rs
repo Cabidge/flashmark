@@ -11,6 +11,14 @@ fn test_render_with_scope(scope: &mut rhai::Scope<'static>, input: &str, expecte
 }
 
 #[test]
+fn front_matter() {
+    test_render(
+        "---\nlet name = \"World\"\n---\nHello, @(name)!",
+        "Hello, World!",
+    );
+}
+
+#[test]
 fn literal() {
     test_render("Hello, World!", "Hello, World!");
 }
