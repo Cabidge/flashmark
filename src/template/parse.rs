@@ -10,6 +10,7 @@ pub struct Parser<'a> {
 
 #[derive(Debug, Clone)]
 pub struct ParserState<'a> {
+    pub engine: &'a rhai::Engine,
     pub scope: &'a rhai::Scope<'static>,
     pub chars: CharStream<'a>,
 }
@@ -54,8 +55,9 @@ type CharStream<'a> = Peekable<std::str::Chars<'a>>;
 type StepResult = (Option<Result<Stmt, rhai::ParseError>>, Option<ParserStep>);
 
 impl<'a> Parser<'a> {
-    pub fn new(scope: &'a rhai::Scope<'static>, input: &'a str) -> Self {
+    pub fn new(engine: &'a rhai::Engine, scope: &'a rhai::Scope<'static>, input: &'a str) -> Self {
         Self::with_state(ParserState {
+            engine,
             scope,
             chars: input.chars().peekable(),
         })
@@ -165,7 +167,7 @@ impl<'a> Iterator for Parser<'a> {
 
 impl<'a> ParserState<'a> {
     pub fn compile_expression(&self, expr: impl AsRef<str>) -> Result<rhai::AST, rhai::ParseError> {
-        super::new_engine().compile_expression_with_scope(self.scope, expr)
+        self.engine.compile_expression_with_scope(self.scope, expr)
     }
 }
 
@@ -176,12 +178,6 @@ impl ParserStep {
             _ => None,
         }
     }
-}
-
-// Expressions - @(<expr>)
-// If - @if <expr> { <body> } [@elif  <expr> { <body> }]* [@else { <body> }]
-pub fn parse(scope: &rhai::Scope<'static>, input: &str) -> Block {
-    Parser::new(scope, input).collect()
 }
 
 /// Assumes the opening '@' has already been consumed.
