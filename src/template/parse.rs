@@ -201,15 +201,7 @@ fn capture_body(state: &mut ParserState) -> Block {
     'look_ahead: {
         let mut look_ahead = state.chars.clone();
 
-        while let Some(ch) = look_ahead.next_if(|&c| c != '\n') {
-            if ch.is_whitespace() {
-                continue;
-            } else {
-                break 'look_ahead;
-            }
-        }
-
-        if look_ahead.next() != Some('\n') {
+        if look_ahead.find(|&ch| !ch.is_whitespace() || ch == '\n') != Some('\n') {
             break 'look_ahead;
         }
 
