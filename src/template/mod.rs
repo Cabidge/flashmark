@@ -15,10 +15,9 @@ pub fn render_with_engine(engine: &rhai::Engine, input: &str) -> String {
     let (front_matter, input) = parse::parse_front_matter(input);
 
     if let Some(front_matter) = front_matter {
-        // TODO: handle runtime error
-        engine
-            .run_with_scope(&mut scope, front_matter)
-            .expect("failed to run front matter");
+        if let Err(err) = engine.run_with_scope(&mut scope, front_matter) {
+            return format!("Error: {}", err);
+        }
     }
 
     render_with_engine_and_scope(engine, &mut scope, input)
