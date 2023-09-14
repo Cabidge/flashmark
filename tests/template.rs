@@ -121,6 +121,15 @@ fn if_expression() {
 }
 
 #[test]
+fn if_newline() {
+    let mut scope = rhai::Scope::new();
+    let input = "@if true {\n    true\n}";
+    let expected = "    true";
+    let actual = render(&mut scope, input);
+    assert_eq!(actual, expected);
+}
+
+#[test]
 fn nested() {
     let mut scope = rhai::Scope::new();
     scope.push("name", "World");

@@ -188,6 +188,27 @@ fn capture_keyword(chars: &mut CharStream) -> String {
 ///
 /// Returns the parsed body.
 fn capture_body(state: &mut ParserState) -> Block {
+    // look ahead for a newline
+    'look_ahead: {
+        let mut look_ahead = state.chars.clone();
+
+        while let Some(ch) = look_ahead.next_if(|&c| c != '\n') {
+            if ch.is_whitespace() {
+                continue;
+            } else {
+                break 'look_ahead;
+            }
+        }
+
+        if look_ahead.next() != Some('\n') {
+            break 'look_ahead;
+        }
+
+        look_ahead.next_if_eq(&'\r');
+
+        state.chars = look_ahead;
+    }
+
     let mut nested_parser = Parser::with_state((*state).clone());
 
     let mut block = vec![];
@@ -202,10 +223,19 @@ fn capture_body(state: &mut ParserState) -> Block {
         }
     }
 
-    if let Some(ParserStep::Literal(literal)) = nested_parser.current_step {
-        if !literal.is_empty() {
+    // remove trailing newline
+    match nested_parser.current_step {
+        Some(ParserStep::Literal(mut literal)) if !literal.is_empty() => {
+            match literal.rsplit_once('\n') {
+                Some((before, after)) if after.chars().all(|c| c.is_whitespace()) => {
+                    literal.truncate(before.len());
+                }
+                _ => (),
+            }
+
             block.push(Ok(Stmt::Literal(literal)));
         }
+        _ => (),
     }
 
     // outer parser continues from where the nested parser left off
