@@ -128,8 +128,8 @@ impl<'a> Parser<'a> {
                 let keyword = capture_keyword(&mut state.chars);
 
                 let next_state = match keyword.as_str() {
-                    "if" => Some(ParserStep::If),
-                    "for" => Some(ParserStep::For),
+                    "if" if state.engine.allow_if_expression() => Some(ParserStep::If),
+                    "for" if state.engine.allow_looping() => Some(ParserStep::For),
                     _ => None,
                 };
 
