@@ -6,14 +6,16 @@ pub fn new_engine() -> rhai::Engine {
     rhai::Engine::new()
 }
 
-pub fn render(scope: &mut rhai::Scope<'static>, input: &str) -> String {
-    let engine = new_engine();
-
-    let block = parse::Parser::new(&engine, scope, input).collect();
+pub fn render_slide(
+    engine: &rhai::Engine,
+    scope: &mut rhai::Scope<'static>,
+    input: &str,
+) -> String {
+    let block = parse::Parser::new(engine, scope, input).collect();
 
     let mut output = String::new();
 
-    let mut evaluator = evaluate::Evaluator::new(&engine, scope, &mut output);
+    let mut evaluator = evaluate::Evaluator::new(engine, scope, &mut output);
     evaluator.eval(block).unwrap();
 
     output
