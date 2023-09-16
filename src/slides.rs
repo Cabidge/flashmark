@@ -18,30 +18,44 @@ impl<'a> Iterator for Slides<'a> {
             return None;
         }
 
-        let mut end = 0;
-        for section in self.string.split_inclusive("\n---") {
-            if section.starts_with('\n') || section.starts_with("\r\n") {
-                let (slide, rest) = self.string.split_at(end);
+        let break_points = {
+            let mut break_point = 0;
+            self.string.split_inclusive("---").map(move |section| {
+                break_point += section.len();
+                break_point
+            })
+        };
 
-                let rest = rest.strip_prefix('\r').unwrap_or(rest);
-                self.string = rest.strip_prefix('\n').unwrap_or(rest);
+        for break_point in break_points {
+            let (slide, rest) = self.string.split_at(break_point);
 
-                let Some(slide) = slide.strip_suffix("---") else {
-                    return Some(slide);
-                };
-                let Some(slide) = slide.strip_suffix('\n') else {
-                    return Some(slide);
-                };
-                return Some(slide.strip_suffix('\r').unwrap_or(slide));
-            }
+            let slide = slide.strip_suffix("---").unwrap_or(slide);
 
-            end += section.len();
+            let Some(slide) = slide
+                .is_empty()
+                .then_some(slide)
+                .or_else(|| slide.strip_suffix('\n'))
+            else {
+                continue;
+            };
+
+            let slide = slide.strip_suffix('\r').unwrap_or(slide);
+
+            let rest = rest.strip_prefix('\r').unwrap_or(rest);
+
+            let Some(rest) = rest
+                .is_empty()
+                .then_some(rest)
+                .or_else(|| rest.strip_prefix('\n'))
+            else {
+                continue;
+            };
+
+            self.string = rest;
+            return Some(slide);
         }
 
-        let rest = self.string;
-        self.string = "";
-
-        Some(rest)
+        Some(std::mem::replace(&mut self.string, ""))
     }
 }
 
