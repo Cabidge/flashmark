@@ -32,7 +32,7 @@ impl<'a> Iterator for Slides<'a> {
             return None;
         }
 
-        let break_points = {
+        let mut break_points = {
             let mut break_point = 0;
             self.string.split_inclusive("---").map(move |section| {
                 break_point += section.len();
@@ -40,24 +40,20 @@ impl<'a> Iterator for Slides<'a> {
             })
         };
 
-        for break_point in break_points {
-            let (slide, rest) = self.string.split_at(break_point);
+        let (slide, rest) = break_points
+            .find_map(|break_point| {
+                let (slide, rest) = self.string.split_at(break_point);
 
-            let slide = slide.strip_suffix("---").unwrap_or(slide);
+                let slide = slide.strip_suffix("---").unwrap_or(slide);
+                let slide = empty_or_else(slide, || strip_suffix_newline(slide))?;
+                let rest = empty_or_else(rest, || strip_prefix_newline(rest))?;
 
-            let Some(slide) = empty_or_else(slide, || strip_suffix_newline(slide)) else {
-                continue;
-            };
+                Some((slide, rest))
+            })
+            .unwrap_or((self.string, ""));
 
-            let Some(rest) = empty_or_else(rest, || strip_prefix_newline(rest)) else {
-                continue;
-            };
-
-            self.string = rest;
-            return Some(slide);
-        }
-
-        Some(std::mem::replace(&mut self.string, ""))
+        self.string = rest;
+        Some(slide)
     }
 }
 
