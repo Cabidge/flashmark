@@ -10,6 +10,20 @@ impl<'a> Slides<'a> {
     }
 }
 
+fn strip_suffix_newline(input: &str) -> Option<&str> {
+    input
+        .strip_suffix('\n')
+        .map(|input| input.strip_suffix('\r').unwrap_or(input))
+}
+
+fn strip_prefix_newline(input: &str) -> Option<&str> {
+    input.strip_prefix('\r').unwrap_or(input).strip_prefix('\n')
+}
+
+fn empty_or_else<'a>(input: &'a str, f: impl FnOnce() -> Option<&'a str>) -> Option<&'a str> {
+    input.is_empty().then_some(input).or_else(f)
+}
+
 impl<'a> Iterator for Slides<'a> {
     type Item = &'a str;
 
@@ -31,23 +45,11 @@ impl<'a> Iterator for Slides<'a> {
 
             let slide = slide.strip_suffix("---").unwrap_or(slide);
 
-            let Some(slide) = slide
-                .is_empty()
-                .then_some(slide)
-                .or_else(|| slide.strip_suffix('\n'))
-            else {
+            let Some(slide) = empty_or_else(slide, || strip_suffix_newline(slide)) else {
                 continue;
             };
 
-            let slide = slide.strip_suffix('\r').unwrap_or(slide);
-
-            let rest = rest.strip_prefix('\r').unwrap_or(rest);
-
-            let Some(rest) = rest
-                .is_empty()
-                .then_some(rest)
-                .or_else(|| rest.strip_prefix('\n'))
-            else {
+            let Some(rest) = empty_or_else(rest, || strip_prefix_newline(rest)) else {
                 continue;
             };
 
