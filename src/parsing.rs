@@ -47,6 +47,14 @@ impl<'a> StrParser<'a> {
         self.consume_while(char::is_whitespace);
     }
 
+    /// Tries to advance the parser by one character.
+    /// Returns the character if it exists.
+    pub fn next_char(&mut self) -> Option<char> {
+        let ch = self.rest().chars().next()?;
+        self.position += ch.len_utf8();
+        Some(ch)
+    }
+
     /// Tries to consume a specific character.
     /// Returns if the character was consumed.
     pub fn consume(&mut self, ch: char) -> bool {
