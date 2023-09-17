@@ -71,6 +71,18 @@ impl<'a> StrParser<'a> {
         }
     }
 
+    /// Tries to consume a character that satisfies a given predicate.
+    /// Returns the consumed character.
+    pub fn consume_if(&mut self, mut predicate: impl FnMut(char) -> bool) -> Option<char> {
+        match self.peek() {
+            Some(ch) if predicate(ch) => {
+                self.position += ch.len_utf8();
+                Some(ch)
+            }
+            _ => None,
+        }
+    }
+
     /// Tries to consume a specific string.
     /// Returns if the string was consumed.
     pub fn consume_str(&mut self, s: &str) -> bool {
