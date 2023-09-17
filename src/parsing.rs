@@ -97,17 +97,13 @@ impl<'a> StrParser<'a> {
     /// Tries to consume the input while a given predicate is true.
     /// Returns the consumed input.
     pub fn consume_while(&mut self, mut predicate: impl FnMut(char) -> bool) -> &str {
-        let Some(length) = self
+        let new_position = self
             .rest()
             .char_indices()
-            .find_map(|(i, ch)| (!predicate(ch)).then_some(i))
-        else {
-            return self.consume_rest();
-        };
+            .find_map(|(i, ch)| (!predicate(ch)).then_some(self.position + i))
+            .unwrap_or(self.input.len());
 
-        let start = self.position;
-        self.position += length;
-
+        let start = std::mem::replace(&mut self.position, new_position);
         &self.input[start..self.position]
     }
 
