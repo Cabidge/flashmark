@@ -47,10 +47,15 @@ impl<'a> StrParser<'a> {
         self.consume_while(char::is_whitespace);
     }
 
+    /// Get the next character without advancing the parser.
+    pub fn peek(&self) -> Option<char> {
+        self.rest().chars().next()
+    }
+
     /// Tries to advance the parser by one character.
     /// Returns the character if it exists.
-    pub fn next_char(&mut self) -> Option<char> {
-        let ch = self.rest().chars().next()?;
+    pub fn advance(&mut self) -> Option<char> {
+        let ch = self.peek()?;
         self.position += ch.len_utf8();
         Some(ch)
     }
