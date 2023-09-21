@@ -4,6 +4,7 @@ pub enum Token<'a> {
     Text(&'a str),
     Number(&'a str),
     Symbol(Symbol),
+    Function(Function),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -27,7 +28,6 @@ pub enum Symbol {
     NotIn,
     Sum,
     Integral,
-    Function(Function),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
