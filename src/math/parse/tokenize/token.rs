@@ -1,16 +1,20 @@
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Token<'a> {
-    Unit(Unit<'a>),
-    Function(Function),
+    Literal(Literal<'a>),
+    Keyword(Keyword),
 }
 
-/// A single token that takes no arguments.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum Unit<'a> {
+pub enum Literal<'a> {
     Identifier(&'a str),
     Text(&'a str),
     Number(&'a str),
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum Keyword {
     Symbol(Symbol),
+    Function(Function),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
