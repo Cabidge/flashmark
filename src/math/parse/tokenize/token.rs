@@ -1,10 +1,16 @@
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Token<'a> {
+    Unit(Unit<'a>),
+    Function(Function),
+}
+
+/// A single token that takes no arguments.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum Unit<'a> {
     Identifier(&'a str),
     Text(&'a str),
     Number(&'a str),
     Symbol(Symbol),
-    Function(Function),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -31,14 +37,6 @@ pub enum Symbol {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum Function {
-    Sqrt,
-    Sin,
-    Cos,
-    Tan,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Grouping {
     Paren,
     Bracket,
@@ -49,4 +47,13 @@ pub enum Grouping {
 pub enum GroupingKind {
     Open,
     Close,
+}
+
+/// A token that is followed by a single argument.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum Function {
+    Sqrt,
+    Sin,
+    Cos,
+    Tan,
 }
