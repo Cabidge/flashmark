@@ -22,7 +22,7 @@ pub enum Symbol {
     CrossProduct,
     Caret,
     Underscore,
-    Grouping(Grouping, GroupingKind),
+    Grouping(Grouping),
     Equal,
     NotEqual,
     LessThan,
@@ -37,16 +37,22 @@ pub enum Symbol {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum Grouping {
+pub struct Grouping {
+    pub kind: GroupingKind,
+    pub side: GroupingSide,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum GroupingKind {
     Paren,
     Bracket,
     Brace,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum GroupingKind {
-    Open,
-    Close,
+pub enum GroupingSide {
+    Left,
+    Right,
 }
 
 /// A token that is followed by a single argument.
