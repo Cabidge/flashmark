@@ -109,13 +109,28 @@ impl<'a> Tokenizer<'a> {
             keyword
         })
     }
-}
 
-impl<'a> Iterator for Tokenizer<'a> {
-    type Item = token::Token<'a>;
+    pub fn next_token(&'a mut self) -> Option<token::Token<'a>> {
+        use token::{Literal, Token};
+        self.parser.skip_whitespace();
 
-    fn next(&mut self) -> Option<Self::Item> {
-        let _ = self.parser; // remove warnings
-        todo!()
+        if self.parser.is_exhausted() {
+            return None;
+        }
+
+        if self.parser.peek().is_some_and(|ch| ch.is_ascii_digit()) {
+            let num = self.parser.consume_while(|ch| ch.is_ascii_digit());
+            return Some(Token::Literal(Literal::Number(num)));
+        }
+
+        if let Some(keyword) = self.try_tokenize_keyword() {
+            return Some(Token::Keyword(keyword));
+        }
+
+        if self.parser.consume('\"') {
+            todo!("Text literals not implemented yet");
+        }
+
+        Some(Token::Literal(Literal::Variable(self.parser.advance()?)))
     }
 }
