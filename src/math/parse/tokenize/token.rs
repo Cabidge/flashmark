@@ -6,7 +6,7 @@ pub enum Token<'a> {
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Literal<'a> {
-    Identifier(&'a str),
+    Variable(char),
     Text(&'a str),
     Number(&'a str),
 }
