@@ -48,7 +48,7 @@ impl<'a> Tokenizer<'a> {
     ];
 
     fn try_tokenize_keyword(&mut self) -> Option<token::Keyword> {
-        use token::{Grouping, GroupingSide, Keyword, Symbol};
+        use token::{GroupingSide, Keyword};
 
         let mut keyword_mapping = vec![];
 
@@ -69,12 +69,7 @@ impl<'a> Tokenizer<'a> {
                         (right, kind, GroupingSide::Right),
                     ]
                 })
-                .map(|(symbol, kind, side)| {
-                    (
-                        symbol,
-                        Keyword::Symbol(Symbol::Grouping(Grouping { kind, side })),
-                    )
-                }),
+                .map(|(symbol, kind, side)| (symbol, Keyword::new_grouping(kind, side))),
         );
 
         // add function mappings to the keyword mappings

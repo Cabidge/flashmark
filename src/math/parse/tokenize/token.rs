@@ -67,3 +67,9 @@ pub enum Function {
     Cos,
     Tan,
 }
+
+impl Keyword {
+    pub fn new_grouping(kind: GroupingKind, side: GroupingSide) -> Self {
+        Self::Symbol(Symbol::Grouping(Grouping { kind, side }))
+    }
+}
