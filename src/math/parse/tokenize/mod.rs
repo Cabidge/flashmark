@@ -109,6 +109,11 @@ impl<'a> Tokenizer<'a> {
             keyword
         })
     }
+
+    fn try_tokenize_number(&mut self) -> Option<Box<str>> {
+        let num = self.parser.consume_while(|ch| ch.is_ascii_digit());
+        (!num.is_empty()).then(|| Box::from(num))
+    }
 }
 
 impl<'a> Iterator for Tokenizer<'a> {
@@ -123,10 +128,7 @@ impl<'a> Iterator for Tokenizer<'a> {
             return None;
         }
 
-        if self.parser.peek().is_some_and(|ch| ch.is_ascii_digit()) {
-            let num_slice = self.parser.consume_while(|ch| ch.is_ascii_digit());
-            let num = Box::from(num_slice);
-
+        if let Some(num) = self.try_tokenize_number() {
             return Some(Token::Literal(Literal::Number(num)));
         }
 
