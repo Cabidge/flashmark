@@ -1,14 +1,14 @@
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum Token<'a> {
-    Literal(Literal<'a>),
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Token {
+    Literal(Literal),
     Keyword(Keyword),
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum Literal<'a> {
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Literal {
     Variable(char),
-    Text(&'a str),
-    Number(&'a str),
+    Text(Box<str>),
+    Number(Box<str>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

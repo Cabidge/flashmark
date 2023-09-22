@@ -109,9 +109,14 @@ impl<'a> Tokenizer<'a> {
             keyword
         })
     }
+}
 
-    pub fn next_token(&'a mut self) -> Option<token::Token<'a>> {
+impl<'a> Iterator for Tokenizer<'a> {
+    type Item = token::Token;
+
+    fn next(&mut self) -> Option<Self::Item> {
         use token::{Literal, Token};
+
         self.parser.skip_whitespace();
 
         if self.parser.is_exhausted() {
@@ -119,7 +124,9 @@ impl<'a> Tokenizer<'a> {
         }
 
         if self.parser.peek().is_some_and(|ch| ch.is_ascii_digit()) {
-            let num = self.parser.consume_while(|ch| ch.is_ascii_digit());
+            let num_slice = self.parser.consume_while(|ch| ch.is_ascii_digit());
+            let num = Box::from(num_slice);
+
             return Some(Token::Literal(Literal::Number(num)));
         }
 
