@@ -13,39 +13,55 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
+    const SIMPLE_SYMBOL_MAPPING: [(&str, token::Symbol); 18] = [
+        ("+", token::Symbol::Plus),
+        ("-", token::Symbol::Minus),
+        ("/", token::Symbol::Slash),
+        ("*", token::Symbol::DotProduct),
+        ("xx", token::Symbol::CrossProduct),
+        ("^", token::Symbol::Caret),
+        ("_", token::Symbol::Underscore),
+        ("=", token::Symbol::Equal),
+        ("!=", token::Symbol::NotEqual),
+        ("<", token::Symbol::LessThan),
+        (">", token::Symbol::GreaterThan),
+        ("<=", token::Symbol::LessThanOrEqual),
+        (">=", token::Symbol::GreaterThanOrEqual),
+        (":", token::Symbol::Colon),
+        ("in", token::Symbol::In),
+        ("notin", token::Symbol::NotIn),
+        ("sum", token::Symbol::Sum),
+        ("int", token::Symbol::Integral),
+    ];
+
+    const GROUPING_MAPPING: [(&str, &str, token::GroupingKind); 3] = [
+        ("(", ")", token::GroupingKind::Paren),
+        ("[", "]", token::GroupingKind::Bracket),
+        ("{", "}", token::GroupingKind::Brace),
+    ];
+
+    const FUNCTION_MAPPING: [(&str, token::Function); 4] = [
+        ("sqrt", token::Function::Sqrt),
+        ("sin", token::Function::Sin),
+        ("cos", token::Function::Cos),
+        ("tan", token::Function::Tan),
+    ];
+
     fn try_tokenize_keyword(&mut self) -> Option<token::Keyword> {
-        use token::{Function, Grouping, GroupingKind, GroupingSide, Keyword, Symbol};
+        use token::{Grouping, GroupingSide, Keyword, Symbol};
 
-        let mut symbol_mapping = vec![
-            ("+", Symbol::Plus),
-            ("-", Symbol::Minus),
-            ("/", Symbol::Slash),
-            ("*", Symbol::DotProduct),
-            ("xx", Symbol::CrossProduct),
-            ("^", Symbol::Caret),
-            ("_", Symbol::Underscore),
-            ("=", Symbol::Equal),
-            ("!=", Symbol::NotEqual),
-            ("<", Symbol::LessThan),
-            (">", Symbol::GreaterThan),
-            ("<=", Symbol::LessThanOrEqual),
-            (">=", Symbol::GreaterThanOrEqual),
-            (":", Symbol::Colon),
-            ("in", Symbol::In),
-            ("notin", Symbol::NotIn),
-            ("sum", Symbol::Sum),
-            ("int", Symbol::Integral),
-        ];
+        let mut keyword_mapping = vec![];
 
-        let grouping_mapping = [
-            ("(", ")", GroupingKind::Paren),
-            ("[", "]", GroupingKind::Bracket),
-            ("{", "}", GroupingKind::Brace),
-        ];
+        // add symbol mappings to the keyword mappings
+        keyword_mapping.extend(
+            Self::SIMPLE_SYMBOL_MAPPING
+                .into_iter()
+                .map(|(symbol, keyword)| (symbol, Keyword::Symbol(keyword))),
+        );
 
-        // add grouping symbols to the symbol mapping
-        symbol_mapping.extend(
-            grouping_mapping
+        // add grouping mappings to the keyword mappings
+        keyword_mapping.extend(
+            Self::GROUPING_MAPPING
                 .into_iter()
                 .flat_map(|(left, right, kind)| {
                     [
@@ -53,28 +69,17 @@ impl<'a> Tokenizer<'a> {
                         (right, kind, GroupingSide::Right),
                     ]
                 })
-                .map(|(symbol, kind, side)| (symbol, Symbol::Grouping(Grouping { kind, side }))),
-        );
-
-        let function_mapping = [
-            ("sqrt", Function::Sqrt),
-            ("sin", Function::Sin),
-            ("cos", Function::Cos),
-            ("tan", Function::Tan),
-        ];
-
-        let mut keyword_mapping = vec![];
-
-        // add symbol mappings to the keyword mappings
-        keyword_mapping.extend(
-            symbol_mapping
-                .into_iter()
-                .map(|(symbol, keyword)| (symbol, Keyword::Symbol(keyword))),
+                .map(|(symbol, kind, side)| {
+                    (
+                        symbol,
+                        Keyword::Symbol(Symbol::Grouping(Grouping { kind, side })),
+                    )
+                }),
         );
 
         // add function mappings to the keyword mappings
         keyword_mapping.extend(
-            function_mapping
+            Self::FUNCTION_MAPPING
                 .into_iter()
                 .map(|(symbol, keyword)| (symbol, Keyword::Function(keyword))),
         );
