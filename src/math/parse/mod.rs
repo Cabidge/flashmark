@@ -18,7 +18,26 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expr(&mut self) -> Option<Expr> {
-        todo!()
+        let unit = self.parse_unit()?;
+
+        let Some(_slash) = self
+            .token_stream
+            .next_if_eq(&tokenize::token::Token::Keyword(
+                tokenize::token::Keyword::Symbol(tokenize::token::Symbol::Special(
+                    tokenize::token::SpecialSymbol::Slash,
+                )),
+            ))
+        else {
+            return Some(Expr::Unit(Box::new(unit)));
+        };
+
+        // TODO: Handle incomplete fractions
+        let denominator = self.parse_unit()?;
+
+        Some(Expr::Fraction(Box::new(expressions::Fraction {
+            numerator: Expr::Unit(Box::new(unit)),
+            denominator: Expr::Unit(Box::new(denominator)),
+        })))
     }
 
     fn parse_unit(&mut self) -> Option<UnitExpr> {
