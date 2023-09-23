@@ -211,7 +211,7 @@ impl<'a> StrParser<'a> {
     /// assert_eq!(parser.consume_if(char::is_numeric), None);
     /// assert_eq!(parser.rest(), "abc");
     /// ```
-    pub fn consume_if(&mut self, mut predicate: impl FnMut(char) -> bool) -> Option<char> {
+    pub fn consume_if(&mut self, predicate: impl FnOnce(char) -> bool) -> Option<char> {
         match self.peek() {
             Some(ch) if predicate(ch) => {
                 self.position += ch.len_utf8();
