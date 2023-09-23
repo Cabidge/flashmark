@@ -302,4 +302,20 @@ impl<'a> StrParser<'a> {
         let start = std::mem::replace(&mut self.position, self.input.len());
         &self.input[start..]
     }
+
+    pub fn try_consume_with<T, E>(
+        &mut self,
+        f: impl FnOnce(&mut Self) -> Result<T, E>,
+    ) -> Result<(T, &str), E> {
+        let start = self.position;
+        let result = match f(self) {
+            Ok(result) => result,
+            Err(err) => {
+                self.position = start;
+                return Err(err);
+            }
+        };
+
+        Ok((result, self.input.get(start..self.position).unwrap_or("")))
+    }
 }
