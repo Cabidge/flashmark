@@ -69,7 +69,19 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_variant(&mut self) -> Option<ExprVariant> {
-        todo!()
+        use tokenize::token::{self, Token};
+
+        let expr = match self.token_stream.next()? {
+            Token::Literal(literal) => match literal {
+                token::Literal::Variable(ch) => ExprVariant::Identifier(Box::from(ch.to_string())),
+                token::Literal::Number(num) => ExprVariant::Num(num),
+                token::Literal::Text(text) => ExprVariant::Text(text),
+            },
+            Token::Keyword(token::Keyword::Symbol(symbol)) => todo!(),
+            Token::Keyword(token::Keyword::Function(function)) => todo!(),
+        };
+
+        Some(expr)
     }
 
     fn parse_grouping(&mut self, left: GroupingKind) -> GroupExpr {
