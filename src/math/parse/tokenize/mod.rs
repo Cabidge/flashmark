@@ -13,71 +13,85 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    const SIMPLE_SYMBOL_MAPPING: [(&str, token::Symbol); 18] = [
-        ("+", token::Symbol::Plus),
-        ("-", token::Symbol::Minus),
-        ("/", token::Symbol::Slash),
-        ("*", token::Symbol::DotProduct),
-        ("xx", token::Symbol::CrossProduct),
-        ("^", token::Symbol::Caret),
-        ("_", token::Symbol::Underscore),
-        ("=", token::Symbol::Equal),
-        ("!=", token::Symbol::NotEqual),
-        ("<", token::Symbol::LessThan),
-        (">", token::Symbol::GreaterThan),
-        ("<=", token::Symbol::LessThanOrEqual),
-        (">=", token::Symbol::GreaterThanOrEqual),
-        (":", token::Symbol::Colon),
-        ("in", token::Symbol::In),
-        ("notin", token::Symbol::NotIn),
-        ("sum", token::Symbol::Sum),
-        ("int", token::Symbol::Integral),
+    const SIMPLE_SYMBOL_MAPPING: &[(&'static str, token::SimpleSymbol)] = &[
+        ("+", token::SimpleSymbol::Plus),
+        ("-", token::SimpleSymbol::Minus),
+        ("*", token::SimpleSymbol::DotProduct),
+        ("xx", token::SimpleSymbol::CrossProduct),
+        ("=", token::SimpleSymbol::Equal),
+        ("!=", token::SimpleSymbol::NotEqual),
+        ("<", token::SimpleSymbol::LessThan),
+        (">", token::SimpleSymbol::GreaterThan),
+        ("<=", token::SimpleSymbol::LessThanOrEqual),
+        (">=", token::SimpleSymbol::GreaterThanOrEqual),
+        (":", token::SimpleSymbol::Colon),
+        ("in", token::SimpleSymbol::In),
+        ("notin", token::SimpleSymbol::NotIn),
+        ("sum", token::SimpleSymbol::Sum),
+        ("int", token::SimpleSymbol::Integral),
     ];
 
-    const GROUPING_MAPPING: [(&str, &str, token::GroupingKind); 3] = [
+    const SPECIAL_SYMBOL_MAPPING: &[(&'static str, token::SpecialSymbol)] = &[
+        ("/", token::SpecialSymbol::Slash),
+        ("^", token::SpecialSymbol::Caret),
+        ("_", token::SpecialSymbol::Underscore),
+    ];
+
+    const GROUPING_MAPPING: &[(&'static str, &'static str, token::GroupingKind)] = &[
         ("(", ")", token::GroupingKind::Paren),
         ("[", "]", token::GroupingKind::Bracket),
         ("{", "}", token::GroupingKind::Brace),
     ];
 
-    const FUNCTION_MAPPING: [(&str, token::Function); 4] = [
+    const FUNCTION_MAPPING: &[(&'static str, token::Function)] = &[
         ("sqrt", token::Function::Sqrt),
         ("sin", token::Function::Sin),
         ("cos", token::Function::Cos),
         ("tan", token::Function::Tan),
     ];
 
-    fn try_tokenize_keyword(&mut self) -> Option<token::Keyword> {
+    fn keyword_mapping() -> Vec<(&'static str, token::Keyword)> {
         use token::{GroupingSide, Keyword};
 
         let mut keyword_mapping = vec![];
 
-        // add symbol mappings to the keyword mappings
         keyword_mapping.extend(
             Self::SIMPLE_SYMBOL_MAPPING
                 .into_iter()
-                .map(|(symbol, keyword)| (symbol, Keyword::Symbol(keyword))),
+                .map(|&(keyword, symbol)| (keyword, Keyword::new_simple_symbol(symbol))),
         );
 
-        // add grouping mappings to the keyword mappings
+        keyword_mapping.extend(
+            Self::SPECIAL_SYMBOL_MAPPING
+                .into_iter()
+                .map(|&(keyword, symbol)| (keyword, Keyword::new_special_symbol(symbol))),
+        );
+
         keyword_mapping.extend(
             Self::GROUPING_MAPPING
                 .into_iter()
-                .flat_map(|(left, right, kind)| {
+                .flat_map(|&(left, right, kind)| {
                     [
                         (left, kind, GroupingSide::Left),
                         (right, kind, GroupingSide::Right),
                     ]
                 })
-                .map(|(symbol, kind, side)| (symbol, Keyword::new_grouping(kind, side))),
+                .map(|(keyword, kind, side)| (keyword, Keyword::new_grouping(kind, side))),
         );
 
-        // add function mappings to the keyword mappings
         keyword_mapping.extend(
             Self::FUNCTION_MAPPING
                 .into_iter()
-                .map(|(symbol, keyword)| (symbol, Keyword::Function(keyword))),
+                .map(|&(keyword, function)| (keyword, Keyword::Function(function))),
         );
+
+        keyword_mapping
+    }
+
+    fn try_tokenize_keyword(&mut self) -> Option<token::Keyword> {
+        use token::Keyword;
+
+        let mut keyword_mapping = Self::keyword_mapping();
 
         let mut parser = self.parser.clone();
 
@@ -90,7 +104,9 @@ impl<'a> Tokenizer<'a> {
 
             // remove all keywords that don't match the current character
             keyword_mapping.retain_mut(|(symbol, _)| {
-                let Some(rest) = symbol.strip_prefix(ch) else { return false; };
+                let Some(rest) = symbol.strip_prefix(ch) else {
+                    return false;
+                };
                 *symbol = rest;
                 true
             });

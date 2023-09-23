@@ -19,14 +19,26 @@ pub enum Keyword {
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Symbol {
-    Plus,
-    Minus,
+    Special(SpecialSymbol),
+    Simple(SimpleSymbol),
+}
+
+/// A symbol with extra meaning that doesn't translate directly to a single expression.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum SpecialSymbol {
     Slash,
-    DotProduct,
-    CrossProduct,
     Caret,
     Underscore,
     Grouping(Grouping),
+}
+
+/// A symbol that translates directly to a single expression.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum SimpleSymbol {
+    Plus,
+    Minus,
+    DotProduct,
+    CrossProduct,
     Equal,
     NotEqual,
     LessThan,
@@ -69,7 +81,15 @@ pub enum Function {
 }
 
 impl Keyword {
+    pub fn new_simple_symbol(symbol: SimpleSymbol) -> Self {
+        Self::Symbol(Symbol::Simple(symbol))
+    }
+
+    pub fn new_special_symbol(symbol: SpecialSymbol) -> Self {
+        Self::Symbol(Symbol::Special(symbol))
+    }
+
     pub fn new_grouping(kind: GroupingKind, side: GroupingSide) -> Self {
-        Self::Symbol(Symbol::Grouping(Grouping { kind, side }))
+        Self::new_special_symbol(SpecialSymbol::Grouping(Grouping { kind, side }))
     }
 }
