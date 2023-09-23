@@ -266,6 +266,42 @@ impl<'a> StrParser<'a> {
         &self.input[start..self.position]
     }
 
+    /// Calls a function with a mutable reference to the parser, rewinding if the function returns false.
+    ///
+    /// Returns the consumed input if the function returns true, otherwise returns None.
+    ///
+    /// # Example
+    /// ```
+    /// use flashmark::parsing::StrParser;
+    ///
+    /// let mut parser = StrParser::new("123abc");
+    /// assert_eq!(
+    ///     parser.consume_with(|parser| {
+    ///         parser.consume_while(char::is_numeric);
+    ///         false
+    ///     }),
+    ///     None,
+    /// );
+    /// assert_eq!(parser.rest(), "123abc");
+    /// assert_eq!(
+    ///     parser.consume_with(|parser| {
+    ///         parser.consume_while(char::is_numeric);
+    ///         true
+    ///     }),
+    ///     Some("123"),
+    /// );
+    /// assert_eq!(parser.rest(), "abc");
+    /// ```
+    pub fn consume_with(&mut self, f: impl FnOnce(&mut Self) -> bool) -> Option<&str> {
+        let start = self.position;
+        if f(self) {
+            self.input.get(start..self.position)
+        } else {
+            self.position = start;
+            None
+        }
+    }
+
     /// Consumes the rest of the input.
     ///
     /// Returns the consumed input.
