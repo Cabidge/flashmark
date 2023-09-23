@@ -26,9 +26,12 @@ pub enum ExprVariant {
     Num(Box<str>),
     Text(Box<str>),
     Unary(Function, Box<Expr>),
-    Grouping {
-        left: GroupingKind,
-        right: GroupingKind,
-        body: Vec<Expr>,
-    },
+    Grouping(GroupExpr),
+}
+
+#[derive(Debug, Clone)]
+pub struct GroupExpr {
+    pub left: GroupingKind,
+    pub right: GroupingKind,
+    pub body: Vec<Expr>,
 }
