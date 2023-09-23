@@ -278,13 +278,13 @@ impl<'a> StrParser<'a> {
     /// assert_eq!(parser.consume_with(|parser| {
     ///    parser.consume_while(char::is_numeric);
     ///    parser.consume_str("abc");
-    /// }), "123abc");
+    /// }), ((), "123abc"));
     /// assert_eq!(parser.rest(), "123");
     /// ```
-    pub fn consume_with(&mut self, f: impl FnOnce(&mut Self)) -> &str {
+    pub fn consume_with<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> (T, &str) {
         let start = self.position;
-        f(self);
-        self.input.get(start..self.position).unwrap_or("")
+        let result = f(self);
+        (result, self.input.get(start..self.position).unwrap_or(""))
     }
 
     /// Consumes the rest of the input.
@@ -303,19 +303,16 @@ impl<'a> StrParser<'a> {
         &self.input[start..]
     }
 
-    pub fn try_consume_with<T, E>(
+    pub fn try_consume_with<T>(
         &mut self,
-        f: impl FnOnce(&mut Self) -> Result<T, E>,
-    ) -> Result<(T, &str), E> {
+        f: impl FnOnce(&mut Self) -> Option<T>,
+    ) -> Option<(T, &str)> {
         let start = self.position;
-        let result = match f(self) {
-            Ok(result) => result,
-            Err(err) => {
-                self.position = start;
-                return Err(err);
-            }
+        let Some(result) = f(self) else {
+            self.position = start;
+            return None;
         };
 
-        Ok((result, self.input.get(start..self.position).unwrap_or("")))
+        Some((result, self.input.get(start..self.position).unwrap_or("")))
     }
 }
