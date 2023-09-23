@@ -3,7 +3,7 @@ pub mod tokenize;
 
 use std::iter::Peekable;
 
-use expressions::{Expr, GroupExpr, UnitExpr};
+use expressions::{Expr, ExprVariant, GroupExpr, UnitExpr};
 use tokenize::token::GroupingKind;
 
 pub struct Parser<'a> {
@@ -41,6 +41,34 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_unit(&mut self) -> Option<UnitExpr> {
+        let variant = self.parse_variant()?;
+
+        let sub_script = self
+            .token_stream
+            .next_if_eq(&tokenize::token::Token::Keyword(
+                tokenize::token::Keyword::Symbol(tokenize::token::Symbol::Special(
+                    tokenize::token::SpecialSymbol::Underscore,
+                )),
+            ))
+            .and_then(|_| self.parse_expr());
+
+        let super_script = self
+            .token_stream
+            .next_if_eq(&tokenize::token::Token::Keyword(
+                tokenize::token::Keyword::Symbol(tokenize::token::Symbol::Special(
+                    tokenize::token::SpecialSymbol::Caret,
+                )),
+            ))
+            .and_then(|_| self.parse_expr());
+
+        Some(UnitExpr {
+            variant,
+            sub_script,
+            super_script,
+        })
+    }
+
+    fn parse_variant(&mut self) -> Option<ExprVariant> {
         todo!()
     }
 
