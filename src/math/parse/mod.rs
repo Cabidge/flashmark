@@ -77,7 +77,19 @@ impl<'a> Parser<'a> {
                 token::Literal::Number(num) => ExprVariant::Num(num),
                 token::Literal::Text(text) => ExprVariant::Text(text),
             },
-            Token::Keyword(token::Keyword::Symbol(symbol)) => todo!(),
+            Token::Keyword(token::Keyword::Symbol(symbol)) => match symbol {
+                token::Symbol::Simple(symbol) => todo!(),
+                token::Symbol::Special(symbol) => match symbol {
+                    token::SpecialSymbol::Grouping(grouping) => match grouping.side {
+                        token::GroupingSide::Left => {
+                            let body = self.parse_grouping(grouping.kind);
+                            ExprVariant::Grouping(body)
+                        }
+                        token::GroupingSide::Right => todo!(),
+                    },
+                    _ => todo!(),
+                },
+            },
             Token::Keyword(token::Keyword::Function(function)) => todo!(),
         };
 
