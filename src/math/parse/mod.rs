@@ -1,3 +1,4 @@
+pub mod expressions;
 pub mod tokenize;
 
 pub struct Parser<'a> {
