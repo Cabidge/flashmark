@@ -48,3 +48,11 @@ impl<'a> Parser<'a> {
         todo!()
     }
 }
+
+impl<'a> Iterator for Parser<'a> {
+    type Item = Expr;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.parse_expr()
+    }
+}
