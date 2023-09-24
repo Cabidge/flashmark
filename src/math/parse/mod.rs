@@ -69,32 +69,29 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_variant(&mut self) -> Option<ExprVariant> {
-        use tokenize::token::{self, Token};
+        use tokenize::token::{GroupingSide, Keyword, Literal, SpecialSymbol, Symbol, Token};
 
         let expr = match self.token_stream.next()? {
             Token::Literal(literal) => match literal {
-                token::Literal::Variable(ch) => ExprVariant::Identifier(Box::from(ch.to_string())),
-                token::Literal::Number(num) => ExprVariant::Num(num),
-                token::Literal::Text(text) => ExprVariant::Text(text),
+                Literal::Variable(ch) => ExprVariant::Identifier(Box::from(ch.to_string())),
+                Literal::Number(num) => ExprVariant::Num(num),
+                Literal::Text(text) => ExprVariant::Text(text),
             },
-            Token::Keyword(token::Keyword::Symbol(symbol)) => {
-                use tokenize::token::{Grouping, GroupingSide, SpecialSymbol, Symbol};
-
-                if let Symbol::Special(SpecialSymbol::Grouping(Grouping {
-                    kind,
-                    side: GroupingSide::Left,
-                })) = symbol
-                {
-                    let body = self.parse_grouping(kind);
-                    ExprVariant::Grouping(body)
-                } else {
-                    ExprVariant::from(symbol)
+            Token::Keyword(keyword) => match keyword {
+                Keyword::Symbol(symbol) => match symbol {
+                    Symbol::Special(SpecialSymbol::Grouping(grouping))
+                        if grouping.side == GroupingSide::Left =>
+                    {
+                        let body = self.parse_grouping(grouping.kind);
+                        ExprVariant::Grouping(body)
+                    }
+                    symbol => ExprVariant::from(symbol),
+                },
+                Keyword::Function(function) => {
+                    let expr = self.parse_expr()?;
+                    ExprVariant::Unary(function, Box::new(expr))
                 }
-            }
-            Token::Keyword(token::Keyword::Function(function)) => {
-                let expr = self.parse_expr()?;
-                ExprVariant::Unary(function, Box::new(expr))
-            }
+            },
         };
 
         Some(expr)
