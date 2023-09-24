@@ -98,7 +98,32 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_grouping(&mut self, left: GroupingKind) -> GroupExpr {
-        todo!()
+        use tokenize::token::{GroupingSide, Keyword::*, SpecialSymbol::*, Symbol::*, Token};
+
+        let mut body = vec![];
+
+        let right = loop {
+            let Some(next_token) = self.token_stream.peek() else {
+                break GroupingKind::Paren;
+            };
+
+            match next_token {
+                Token::Keyword(Symbol(Special(Grouping(grouping))))
+                    if grouping.side == GroupingSide::Right =>
+                {
+                    break grouping.kind
+                }
+                _ => (),
+            }
+
+            let Some(expr) = self.parse_expr() else {
+                break GroupingKind::Paren;
+            };
+
+            body.push(expr);
+        };
+
+        GroupExpr { left, right, body }
     }
 }
 
