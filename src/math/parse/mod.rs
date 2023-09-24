@@ -41,15 +41,13 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_unit(&mut self) -> Option<UnitExpr> {
-        use tokenize::token::{Keyword, Token};
+        use tokenize::token::{Keyword, SpecialSymbol, Token};
 
-        const SUBSCRIPT_TOKEN: Token = Token::Keyword(Keyword::new_special_symbol(
-            tokenize::token::SpecialSymbol::Underscore,
-        ));
+        const SUBSCRIPT_TOKEN: Token =
+            Token::Keyword(Keyword::new_special_symbol(SpecialSymbol::Underscore));
 
-        const SUPERSCRIPT_TOKEN: Token = Token::Keyword(Keyword::new_special_symbol(
-            tokenize::token::SpecialSymbol::Caret,
-        ));
+        const SUPERSCRIPT_TOKEN: Token =
+            Token::Keyword(Keyword::new_special_symbol(SpecialSymbol::Caret));
 
         let variant = self.parse_variant()?;
 
