@@ -41,24 +41,26 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_unit(&mut self) -> Option<UnitExpr> {
+        use tokenize::token::{Keyword, Token};
+
+        const SUBSCRIPT_TOKEN: Token = Token::Keyword(Keyword::new_special_symbol(
+            tokenize::token::SpecialSymbol::Underscore,
+        ));
+
+        const SUPERSCRIPT_TOKEN: Token = Token::Keyword(Keyword::new_special_symbol(
+            tokenize::token::SpecialSymbol::Caret,
+        ));
+
         let variant = self.parse_variant()?;
 
         let sub_script = self
             .token_stream
-            .next_if_eq(&tokenize::token::Token::Keyword(
-                tokenize::token::Keyword::Symbol(tokenize::token::Symbol::Special(
-                    tokenize::token::SpecialSymbol::Underscore,
-                )),
-            ))
+            .next_if_eq(&SUBSCRIPT_TOKEN)
             .and_then(|_| self.parse_expr());
 
         let super_script = self
             .token_stream
-            .next_if_eq(&tokenize::token::Token::Keyword(
-                tokenize::token::Keyword::Symbol(tokenize::token::Symbol::Special(
-                    tokenize::token::SpecialSymbol::Caret,
-                )),
-            ))
+            .next_if_eq(&SUPERSCRIPT_TOKEN)
             .and_then(|_| self.parse_expr());
 
         Some(UnitExpr {
