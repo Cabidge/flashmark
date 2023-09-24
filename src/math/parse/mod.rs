@@ -91,7 +91,10 @@ impl<'a> Parser<'a> {
                     ExprVariant::from(symbol)
                 }
             }
-            Token::Keyword(token::Keyword::Function(function)) => todo!(),
+            Token::Keyword(token::Keyword::Function(function)) => {
+                let expr = self.parse_expr()?;
+                ExprVariant::Unary(function, Box::new(expr))
+            }
         };
 
         Some(expr)
