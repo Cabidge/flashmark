@@ -69,7 +69,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_variant(&mut self) -> Option<ExprVariant> {
-        use tokenize::token::{GroupingSide, Keyword, Literal, SpecialSymbol, Symbol, Token};
+        use tokenize::token::{Keyword, Literal, Token};
 
         let expr = match self.token_stream.next()? {
             Token::Literal(literal) => match literal {
@@ -77,28 +77,27 @@ impl<'a> Parser<'a> {
                 Literal::Number(num) => ExprVariant::Num(num),
                 Literal::Text(text) => ExprVariant::Text(text),
             },
-            Token::Keyword(keyword) => match keyword {
-                Keyword::Symbol(symbol) => match symbol {
-                    Symbol::Special(SpecialSymbol::Grouping(grouping))
-                        if grouping.side == GroupingSide::Left =>
-                    {
-                        let body = self.parse_grouping(grouping.kind);
-                        ExprVariant::Grouping(body)
+            Token::Keyword(keyword) => {
+                if let Some(grouping_kind) = keyword.left_grouping() {
+                    let body = self.parse_grouping(grouping_kind);
+                    ExprVariant::Grouping(body)
+                } else {
+                    match keyword {
+                        Keyword::Symbol(symbol) => ExprVariant::from(symbol),
+                        Keyword::Function(function) => {
+                            let expr = self.parse_expr()?;
+                            ExprVariant::Unary(function, Box::new(expr))
+                        }
                     }
-                    symbol => ExprVariant::from(symbol),
-                },
-                Keyword::Function(function) => {
-                    let expr = self.parse_expr()?;
-                    ExprVariant::Unary(function, Box::new(expr))
                 }
-            },
+            }
         };
 
         Some(expr)
     }
 
     fn parse_grouping(&mut self, left: GroupingKind) -> GroupExpr {
-        use tokenize::token::{GroupingSide, Keyword::*, SpecialSymbol::*, Symbol::*, Token};
+        use tokenize::token::Token;
 
         let mut body = vec![];
 
@@ -107,13 +106,10 @@ impl<'a> Parser<'a> {
                 break GroupingKind::Paren;
             };
 
-            match next_token {
-                Token::Keyword(Symbol(Special(Grouping(grouping))))
-                    if grouping.side == GroupingSide::Right =>
-                {
-                    break grouping.kind
+            if let Token::Keyword(keyword) = next_token {
+                if let Some(kind) = keyword.right_grouping() {
+                    break kind;
                 }
-                _ => (),
             }
 
             let Some(expr) = self.parse_expr() else {

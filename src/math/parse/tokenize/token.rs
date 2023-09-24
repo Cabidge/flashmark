@@ -92,4 +92,25 @@ impl Keyword {
     pub fn new_grouping(kind: GroupingKind, side: GroupingSide) -> Self {
         Self::new_special_symbol(SpecialSymbol::Grouping(Grouping { kind, side }))
     }
+
+    pub fn grouping(self) -> Option<Grouping> {
+        match self {
+            Self::Symbol(Symbol::Special(SpecialSymbol::Grouping(grouping))) => Some(grouping),
+            _ => None,
+        }
+    }
+
+    pub fn left_grouping(self) -> Option<GroupingKind> {
+        self.grouping().and_then(|grouping| match grouping.side {
+            GroupingSide::Left => Some(grouping.kind),
+            GroupingSide::Right => None,
+        })
+    }
+
+    pub fn right_grouping(self) -> Option<GroupingKind> {
+        self.grouping().and_then(|grouping| match grouping.side {
+            GroupingSide::Right => Some(grouping.kind),
+            GroupingSide::Left => None,
+        })
+    }
 }
