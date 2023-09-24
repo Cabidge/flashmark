@@ -81,19 +81,19 @@ pub enum Function {
 }
 
 impl Keyword {
-    pub fn new_simple_symbol(symbol: SimpleSymbol) -> Self {
+    pub const fn new_simple_symbol(symbol: SimpleSymbol) -> Self {
         Self::Symbol(Symbol::Simple(symbol))
     }
 
-    pub fn new_special_symbol(symbol: SpecialSymbol) -> Self {
+    pub const fn new_special_symbol(symbol: SpecialSymbol) -> Self {
         Self::Symbol(Symbol::Special(symbol))
     }
 
-    pub fn new_grouping(kind: GroupingKind, side: GroupingSide) -> Self {
+    pub const fn new_grouping(kind: GroupingKind, side: GroupingSide) -> Self {
         Self::new_special_symbol(SpecialSymbol::Grouping(Grouping { kind, side }))
     }
 
-    pub fn grouping(self) -> Option<Grouping> {
+    pub const fn grouping(self) -> Option<Grouping> {
         match self {
             Self::Symbol(Symbol::Special(SpecialSymbol::Grouping(grouping))) => Some(grouping),
             _ => None,
