@@ -18,16 +18,14 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expr(&mut self) -> Option<Expr> {
+        use tokenize::token::{Keyword, SpecialSymbol, Token};
+
+        const FRACTION_TOKEN: Token =
+            Token::Keyword(Keyword::new_special_symbol(SpecialSymbol::Slash));
+
         let unit = self.parse_unit()?;
 
-        let Some(_slash) = self
-            .token_stream
-            .next_if_eq(&tokenize::token::Token::Keyword(
-                tokenize::token::Keyword::Symbol(tokenize::token::Symbol::Special(
-                    tokenize::token::SpecialSymbol::Slash,
-                )),
-            ))
-        else {
+        let Some(_slash) = self.token_stream.next_if_eq(&FRACTION_TOKEN) else {
             return Some(Expr::Unit(Box::new(unit)));
         };
 
