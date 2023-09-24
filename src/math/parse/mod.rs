@@ -77,23 +77,36 @@ impl<'a> Parser<'a> {
                 token::Literal::Number(num) => ExprVariant::Num(num),
                 token::Literal::Text(text) => ExprVariant::Text(text),
             },
-            Token::Keyword(token::Keyword::Symbol(symbol)) => match symbol {
-                token::Symbol::Simple(symbol) => todo!(),
-                token::Symbol::Special(symbol) => match symbol {
-                    token::SpecialSymbol::Grouping(grouping) => match grouping.side {
-                        token::GroupingSide::Left => {
-                            let body = self.parse_grouping(grouping.kind);
-                            ExprVariant::Grouping(body)
-                        }
-                        token::GroupingSide::Right => todo!(),
-                    },
-                    _ => todo!(),
-                },
-            },
+            Token::Keyword(token::Keyword::Symbol(symbol)) => {
+                self.parse_variant_with_symbol(symbol)?
+            }
             Token::Keyword(token::Keyword::Function(function)) => todo!(),
         };
 
         Some(expr)
+    }
+
+    fn parse_variant_with_symbol(
+        &mut self,
+        symbol: tokenize::token::Symbol,
+    ) -> Option<ExprVariant> {
+        use tokenize::token;
+
+        let variant = match symbol {
+            token::Symbol::Simple(symbol) => todo!(),
+            token::Symbol::Special(symbol) => match symbol {
+                token::SpecialSymbol::Grouping(grouping) => match grouping.side {
+                    token::GroupingSide::Left => {
+                        let body = self.parse_grouping(grouping.kind);
+                        ExprVariant::Grouping(body)
+                    }
+                    token::GroupingSide::Right => todo!(),
+                },
+                _ => todo!(),
+            },
+        };
+
+        Some(variant)
     }
 
     fn parse_grouping(&mut self, left: GroupingKind) -> GroupExpr {
