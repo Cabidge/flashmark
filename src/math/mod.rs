@@ -5,6 +5,8 @@ use parse::{
     tokenize::token::GroupingKind,
 };
 
+use self::parse::tokenize::token::Function;
+
 pub fn render(input: &str) -> String {
     let mut output = String::new();
     for expr in parse::Parser::new(input) {
@@ -56,8 +58,13 @@ fn render_unit(unit: UnitExpr, output: &mut String) {
 
 fn render_variant(variant: ExprVariant, output: &mut String) {
     match variant {
+        ExprVariant::Identifier(ident) => render_simple_tag("mi", &ident, output),
+        ExprVariant::Operator(op) => render_operator(&op, output),
+        ExprVariant::Num(num) => render_simple_tag("mn", &num, output),
+        // TODO: escape text
+        ExprVariant::Text(text) => render_simple_tag("mtext", &text, output),
+        ExprVariant::Unary(function, expr) => render_unary(function, *expr, output),
         ExprVariant::Grouping(group) => render_group(group, output),
-        _ => todo!(),
     }
 }
 
@@ -90,8 +97,14 @@ fn render_fraction(fraction: Fraction, output: &mut String) {
     output.push_str("</mfrac>");
 }
 
+fn render_unary(function: Function, expr: Expr, output: &mut String) {
+    todo!()
+}
+
+fn render_simple_tag(tag: &str, inner: &str, output: &mut String) {
+    output.push_str(&format!("<{}>{}</{}>", tag, inner, tag));
+}
+
 fn render_operator(op: &str, output: &mut String) {
-    output.push_str("<mo>");
-    output.push_str(op);
-    output.push_str("</mo>");
+    render_simple_tag("mo", op, output);
 }
