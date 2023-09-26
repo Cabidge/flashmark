@@ -11,12 +11,20 @@ pub fn render(input: &str) -> String {
     let mut output = String::new();
 
     output.push_str("<math>");
-    for expr in parse::Parser::new(input) {
-        render_expr(expr, false, &mut output).expect("Writing to string should not fail");
-    }
+    render_row(parse::Parser::new(input), &mut output).expect("Writing to string should not fail");
     output.push_str("</math>");
 
     output
+}
+
+fn render_row(exprs: impl IntoIterator<Item = Expr>, output: &mut impl fmt::Write) -> fmt::Result {
+    output.write_str("<mrow>")?;
+
+    for expr in exprs {
+        render_expr(expr, false, output)?;
+    }
+
+    output.write_str("</mrow>")
 }
 
 fn render_expr(expr: Expr, strip_parens: bool, output: &mut impl fmt::Write) -> fmt::Result {
@@ -78,6 +86,10 @@ fn render_variant(
 }
 
 fn render_group(group: GroupExpr, strip_parens: bool, output: &mut impl fmt::Write) -> fmt::Result {
+    if strip_parens && group.left == group.right && group.left == GroupingKind::Paren {
+        return render_row(group.body, output);
+    }
+
     output.write_str("<mrow>")?;
 
     let left = match group.left {
@@ -92,24 +104,13 @@ fn render_group(group: GroupExpr, strip_parens: bool, output: &mut impl fmt::Wri
         GroupingKind::Brace => "}",
     };
 
-    let (left, right) =
-        if strip_parens && group.left == group.right && group.left == GroupingKind::Paren {
-            (None, None)
-        } else {
-            (Some(left), Some(right))
-        };
-
-    if let Some(left) = left {
-        render_simple_tag("mo", left, output)?;
-    }
+    render_simple_tag("mo", left, output)?;
 
     for expr in group.body {
         render_expr(expr, false, output)?;
     }
 
-    if let Some(right) = right {
-        render_simple_tag("mo", right, output)?;
-    }
+    render_simple_tag("mo", right, output)?;
 
     output.write_str("</mrow>")?;
 
