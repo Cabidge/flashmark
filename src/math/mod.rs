@@ -2,10 +2,8 @@ pub mod parse;
 
 use parse::{
     expressions::{Expr, ExprVariant, Fraction, GroupExpr, UnitExpr},
-    tokenize::token::GroupingKind,
+    tokenize::token::{Function, GroupingKind},
 };
-
-use self::parse::tokenize::token::Function;
 
 pub fn render(input: &str) -> String {
     let mut output = String::new();
