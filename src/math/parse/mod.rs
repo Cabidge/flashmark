@@ -106,6 +106,7 @@ impl<'a> Parser<'a> {
 
             if let Token::Keyword(keyword) = next_token {
                 if let Some(kind) = keyword.right_grouping() {
+                    self.token_stream.next(); // Consume the token
                     break kind;
                 }
             }
