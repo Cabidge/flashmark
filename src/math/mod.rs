@@ -84,7 +84,10 @@ fn render_group(group: GroupExpr, output: &mut String) {
 }
 
 fn render_fraction(fraction: Fraction, output: &mut String) {
-    todo!()
+    output.push_str("<mfrac>");
+    render_expr(fraction.numerator, output);
+    render_expr(fraction.denominator, output);
+    output.push_str("</mfrac>");
 }
 
 fn render_operator(op: &str, output: &mut String) {
