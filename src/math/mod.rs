@@ -7,9 +7,12 @@ use parse::{
 
 pub fn render(input: &str) -> String {
     let mut output = String::new();
+
+    output.push_str("<math>");
     for expr in parse::Parser::new(input) {
         render_expr(expr, &mut output);
     }
+    output.push_str("</math>");
 
     output
 }
