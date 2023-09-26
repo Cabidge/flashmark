@@ -1,6 +1,9 @@
 pub mod parse;
 
-use parse::expressions::{Expr, ExprVariant, Fraction, GroupExpr, UnitExpr};
+use parse::{
+    expressions::{Expr, ExprVariant, Fraction, GroupExpr, UnitExpr},
+    tokenize::token::GroupingKind,
+};
 
 pub fn render(input: &str) -> String {
     let mut output = String::new();
@@ -59,9 +62,33 @@ fn render_variant(variant: ExprVariant, output: &mut String) {
 }
 
 fn render_group(group: GroupExpr, output: &mut String) {
-    todo!()
+    output.push_str("<mrow>");
+
+    match group.left {
+        GroupingKind::Paren => render_operator("(", output),
+        GroupingKind::Bracket => render_operator("[", output),
+        GroupingKind::Brace => render_operator("{", output),
+    };
+
+    for expr in group.body {
+        render_expr(expr, output);
+    }
+
+    match group.right {
+        GroupingKind::Paren => render_operator(")", output),
+        GroupingKind::Bracket => render_operator("]", output),
+        GroupingKind::Brace => render_operator("}", output),
+    };
+
+    output.push_str("</mrow>");
 }
 
 fn render_fraction(fraction: Fraction, output: &mut String) {
     todo!()
+}
+
+fn render_operator(op: &str, output: &mut String) {
+    output.push_str("<mo>");
+    output.push_str(op);
+    output.push_str("</mo>");
 }
