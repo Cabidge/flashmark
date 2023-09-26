@@ -7,8 +7,6 @@ use parse::{
     tokenize::token::{Function, GroupingKind},
 };
 
-type RenderResult = Result<(), fmt::Error>;
-
 pub fn render(input: &str) -> String {
     let mut output = String::new();
 
@@ -21,14 +19,14 @@ pub fn render(input: &str) -> String {
     output
 }
 
-fn render_expr(expr: Expr, strip_parens: bool, output: &mut impl fmt::Write) -> RenderResult {
+fn render_expr(expr: Expr, strip_parens: bool, output: &mut impl fmt::Write) -> fmt::Result {
     match expr {
         Expr::Unit(unit) => render_unit(*unit, strip_parens, output),
         Expr::Fraction(fraction) => render_fraction(*fraction, output),
     }
 }
 
-fn render_unit(unit: UnitExpr, strip_parens: bool, output: &mut impl fmt::Write) -> RenderResult {
+fn render_unit(unit: UnitExpr, strip_parens: bool, output: &mut impl fmt::Write) -> fmt::Result {
     let UnitExpr {
         variant,
         super_script,
@@ -67,7 +65,7 @@ fn render_variant(
     variant: ExprVariant,
     strip_parens: bool,
     output: &mut impl fmt::Write,
-) -> RenderResult {
+) -> fmt::Result {
     match variant {
         ExprVariant::Identifier(ident) => render_simple_tag("mi", &ident, output),
         ExprVariant::Operator(op) => render_operator(&op, output),
@@ -79,11 +77,7 @@ fn render_variant(
     }
 }
 
-fn render_group(
-    group: GroupExpr,
-    strip_parens: bool,
-    output: &mut impl fmt::Write,
-) -> RenderResult {
+fn render_group(group: GroupExpr, strip_parens: bool, output: &mut impl fmt::Write) -> fmt::Result {
     output.write_str("<mrow>")?;
 
     let left = match group.left {
@@ -122,7 +116,7 @@ fn render_group(
     Ok(())
 }
 
-fn render_fraction(fraction: Fraction, output: &mut impl fmt::Write) -> RenderResult {
+fn render_fraction(fraction: Fraction, output: &mut impl fmt::Write) -> fmt::Result {
     output.write_str("<mfrac>")?;
     render_expr(fraction.numerator, true, output)?;
     render_expr(fraction.denominator, true, output)?;
@@ -131,14 +125,14 @@ fn render_fraction(fraction: Fraction, output: &mut impl fmt::Write) -> RenderRe
     Ok(())
 }
 
-fn render_unary(function: Function, expr: Expr, output: &mut impl fmt::Write) -> RenderResult {
+fn render_unary(function: Function, expr: Expr, output: &mut impl fmt::Write) -> fmt::Result {
     todo!()
 }
 
-fn render_simple_tag(tag: &str, inner: &str, output: &mut impl fmt::Write) -> RenderResult {
+fn render_simple_tag(tag: &str, inner: &str, output: &mut impl fmt::Write) -> fmt::Result {
     write!(output, "<{}>{}</{}>", tag, inner, tag)
 }
 
-fn render_operator(op: &str, output: &mut impl fmt::Write) -> RenderResult {
+fn render_operator(op: &str, output: &mut impl fmt::Write) -> fmt::Result {
     render_simple_tag("mo", op, output)
 }
