@@ -57,19 +57,19 @@ impl<'a> Tokenizer<'a> {
 
         keyword_mapping.extend(
             Self::SIMPLE_SYMBOL_MAPPING
-                .into_iter()
+                .iter()
                 .map(|&(keyword, symbol)| (keyword, Keyword::new_simple_symbol(symbol))),
         );
 
         keyword_mapping.extend(
             Self::SPECIAL_SYMBOL_MAPPING
-                .into_iter()
+                .iter()
                 .map(|&(keyword, symbol)| (keyword, Keyword::new_special_symbol(symbol))),
         );
 
         keyword_mapping.extend(
             Self::GROUPING_MAPPING
-                .into_iter()
+                .iter()
                 .flat_map(|&(left, right, kind)| {
                     [
                         (left, kind, GroupingSide::Left),
@@ -81,7 +81,7 @@ impl<'a> Tokenizer<'a> {
 
         keyword_mapping.extend(
             Self::FUNCTION_MAPPING
-                .into_iter()
+                .iter()
                 .map(|&(keyword, function)| (keyword, Keyword::Function(function))),
         );
 
