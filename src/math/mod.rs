@@ -25,9 +25,30 @@ fn render_unit(unit: UnitExpr, output: &mut String) {
         sub_script,
     } = unit;
 
+    let tag = match (sub_script.is_some(), super_script.is_some()) {
+        (true, true) => Some("msubsup"),
+        (true, false) => Some("msub"),
+        (false, true) => Some("msup"),
+        (false, false) => None,
+    };
+
+    if let Some(tag) = tag {
+        output.push_str(&format!("<{}>", tag));
+    }
+
     render_variant(variant, output);
 
-    todo!()
+    if let Some(sub_script) = sub_script {
+        render_expr(sub_script, output);
+    }
+
+    if let Some(super_script) = super_script {
+        render_expr(super_script, output);
+    }
+
+    if let Some(tag) = tag {
+        output.push_str(&format!("</{}>", tag));
+    }
 }
 
 fn render_variant(variant: ExprVariant, output: &mut String) {
