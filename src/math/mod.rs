@@ -10,21 +10,21 @@ pub fn render(input: &str) -> String {
 
     output.push_str("<math>");
     for expr in parse::Parser::new(input) {
-        render_expr(expr, &mut output);
+        render_expr(expr, false, &mut output);
     }
     output.push_str("</math>");
 
     output
 }
 
-fn render_expr(expr: Expr, output: &mut String) {
+fn render_expr(expr: Expr, strip_parens: bool, output: &mut String) {
     match expr {
-        Expr::Unit(unit) => render_unit(*unit, output),
+        Expr::Unit(unit) => render_unit(*unit, strip_parens, output),
         Expr::Fraction(fraction) => render_fraction(*fraction, output),
     }
 }
 
-fn render_unit(unit: UnitExpr, output: &mut String) {
+fn render_unit(unit: UnitExpr, strip_parens: bool, output: &mut String) {
     let UnitExpr {
         variant,
         super_script,
@@ -42,14 +42,14 @@ fn render_unit(unit: UnitExpr, output: &mut String) {
         output.push_str(&format!("<{}>", tag));
     }
 
-    render_variant(variant, output);
+    render_variant(variant, strip_parens, output);
 
     if let Some(sub_script) = sub_script {
-        render_expr(sub_script, output);
+        render_expr(sub_script, true, output);
     }
 
     if let Some(super_script) = super_script {
-        render_expr(super_script, output);
+        render_expr(super_script, true, output);
     }
 
     if let Some(tag) = tag {
@@ -57,7 +57,7 @@ fn render_unit(unit: UnitExpr, output: &mut String) {
     }
 }
 
-fn render_variant(variant: ExprVariant, output: &mut String) {
+fn render_variant(variant: ExprVariant, strip_parens: bool, output: &mut String) {
     match variant {
         ExprVariant::Identifier(ident) => render_simple_tag("mi", &ident, output),
         ExprVariant::Operator(op) => render_operator(&op, output),
@@ -65,36 +65,51 @@ fn render_variant(variant: ExprVariant, output: &mut String) {
         // TODO: escape text
         ExprVariant::Text(text) => render_simple_tag("mtext", &text, output),
         ExprVariant::Unary(function, expr) => render_unary(function, *expr, output),
-        ExprVariant::Grouping(group) => render_group(group, output),
+        ExprVariant::Grouping(group) => render_group(group, strip_parens, output),
     }
 }
 
-fn render_group(group: GroupExpr, output: &mut String) {
+fn render_group(group: GroupExpr, strip_parens: bool, output: &mut String) {
     output.push_str("<mrow>");
 
-    match group.left {
-        GroupingKind::Paren => render_operator("(", output),
-        GroupingKind::Bracket => render_operator("[", output),
-        GroupingKind::Brace => render_operator("{", output),
+    let left = match group.left {
+        GroupingKind::Paren => "(",
+        GroupingKind::Bracket => "[",
+        GroupingKind::Brace => "{",
     };
 
-    for expr in group.body {
-        render_expr(expr, output);
+    let right = match group.right {
+        GroupingKind::Paren => ")",
+        GroupingKind::Bracket => "]",
+        GroupingKind::Brace => "}",
+    };
+
+    let (left, right) =
+        if strip_parens && group.left == group.right && group.left == GroupingKind::Paren {
+            (None, None)
+        } else {
+            (Some(left), Some(right))
+        };
+
+    if let Some(left) = left {
+        render_simple_tag("mo", left, output);
     }
 
-    match group.right {
-        GroupingKind::Paren => render_operator(")", output),
-        GroupingKind::Bracket => render_operator("]", output),
-        GroupingKind::Brace => render_operator("}", output),
-    };
+    for expr in group.body {
+        render_expr(expr, false, output);
+    }
+
+    if let Some(right) = right {
+        render_simple_tag("mo", right, output);
+    }
 
     output.push_str("</mrow>");
 }
 
 fn render_fraction(fraction: Fraction, output: &mut String) {
     output.push_str("<mfrac>");
-    render_expr(fraction.numerator, output);
-    render_expr(fraction.denominator, output);
+    render_expr(fraction.numerator, true, output);
+    render_expr(fraction.denominator, true, output);
     output.push_str("</mfrac>");
 }
 
