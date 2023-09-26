@@ -100,7 +100,9 @@ impl<'a> Tokenizer<'a> {
 
         // loop until we have no more keywords to match
         while !keyword_mapping.is_empty() {
-            let ch = parser.advance()?;
+            let Some(ch) = parser.advance() else {
+                break;
+            };
 
             // remove all keywords that don't match the current character
             keyword_mapping.retain_mut(|(symbol, _)| {
