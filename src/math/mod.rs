@@ -4,7 +4,7 @@ use std::fmt::{self, Display};
 
 use parse::{
     expressions::{Expr, ExprVariant, Fraction, GroupExpr, UnitExpr},
-    tokenize::token::{Function, GroupingKind},
+    tokenize::{Function, GroupingKind},
 };
 
 pub fn render(input: &str) -> String {

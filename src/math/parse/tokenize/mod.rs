@@ -1,10 +1,7 @@
-use crate::parsing::StrParser;
-
-use self::token::{
-    Function, GroupingKind, GroupingSide, Keyword, Literal, SimpleSymbol, SpecialSymbol, Token,
-};
-
 pub mod token;
+pub use token::*;
+
+use crate::parsing::StrParser;
 
 pub struct Tokenizer<'a> {
     parser: StrParser<'a>,

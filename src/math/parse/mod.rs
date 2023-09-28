@@ -5,7 +5,7 @@ pub mod tokenize;
 use std::iter::Peekable;
 
 use expressions::{Expr, ExprVariant, GroupExpr, UnitExpr};
-use tokenize::token::GroupingKind;
+use tokenize::{GroupingKind, Keyword, Literal, SpecialSymbol, Token};
 
 pub struct Parser<'a> {
     token_stream: Peekable<tokenize::Tokenizer<'a>>,
@@ -19,8 +19,6 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expr(&mut self) -> Option<Expr> {
-        use tokenize::token::{Keyword, SpecialSymbol, Token};
-
         const FRACTION_TOKEN: Token =
             Token::Keyword(Keyword::new_special_symbol(SpecialSymbol::Slash));
 
@@ -40,8 +38,6 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_unit(&mut self) -> Option<UnitExpr> {
-        use tokenize::token::{Keyword, SpecialSymbol, Token};
-
         const SUBSCRIPT_TOKEN: Token =
             Token::Keyword(Keyword::new_special_symbol(SpecialSymbol::Underscore));
 
@@ -68,8 +64,6 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_variant(&mut self) -> Option<ExprVariant> {
-        use tokenize::token::{Keyword, Literal, Token};
-
         let expr = match self.token_stream.next()? {
             Token::Literal(literal) => match literal {
                 Literal::Variable(ch) => ExprVariant::Identifier(ch.into()),
@@ -96,8 +90,6 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_grouping(&mut self, left: GroupingKind) -> GroupExpr {
-        use tokenize::token::Token;
-
         let mut body = vec![];
 
         let right = loop {

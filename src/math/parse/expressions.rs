@@ -1,6 +1,6 @@
 use super::{
     sanitize::LazySanitize,
-    tokenize::token::{self, Function, GroupingKind},
+    tokenize::{Function, GroupingKind, Symbol},
 };
 
 #[derive(Debug, Clone)]
@@ -39,8 +39,8 @@ pub struct GroupExpr {
     pub body: Vec<Expr>,
 }
 
-impl From<token::Symbol> for ExprVariant {
-    fn from(symbol: token::Symbol) -> Self {
+impl From<Symbol> for ExprVariant {
+    fn from(symbol: Symbol) -> Self {
         let symbol_ch = char::from(symbol);
         ExprVariant::Operator(symbol_ch.into())
     }
