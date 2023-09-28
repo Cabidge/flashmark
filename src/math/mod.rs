@@ -55,7 +55,7 @@ fn render_unit(unit: UnitExpr, strip_parens: bool, output: &mut impl fmt::Write)
     render_variant(variant, strip_parens, output)?;
 
     if let Some(sub_script) = sub_script {
-        render_expr(sub_script, true, output)?;
+        render_variant(sub_script, true, output)?;
     }
 
     if let Some(super_script) = super_script {

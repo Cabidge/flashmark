@@ -52,7 +52,7 @@ impl<'a> Parser<'a> {
         let sub_script = self
             .token_stream
             .next_if_eq(&SUBSCRIPT_TOKEN)
-            .and_then(|_| self.parse_expr());
+            .and_then(|_| self.parse_variant());
 
         let super_script = self
             .token_stream

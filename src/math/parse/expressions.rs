@@ -9,8 +9,8 @@ pub enum Expr {
 #[derive(Debug, Clone)]
 pub struct UnitExpr {
     pub variant: ExprVariant,
+    pub sub_script: Option<ExprVariant>,
     pub super_script: Option<Expr>,
-    pub sub_script: Option<Expr>,
 }
 
 #[derive(Debug, Clone)]
