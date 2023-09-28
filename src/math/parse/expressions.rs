@@ -68,6 +68,8 @@ impl From<token::SimpleSymbol> for ExprVariant {
             Colon => ExprVariant::Operator(":".into()),
             In => ExprVariant::Operator("∈".into()),
             NotIn => ExprVariant::Operator("∉".into()),
+            RightArrow => ExprVariant::Operator("→".into()),
+            LeftArrow => ExprVariant::Operator("←".into()),
             Sum => ExprVariant::Operator("∑".into()),
             Integral => ExprVariant::Operator("∫".into()),
         }

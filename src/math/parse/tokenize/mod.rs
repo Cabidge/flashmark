@@ -27,6 +27,8 @@ impl<'a> Tokenizer<'a> {
         (":", token::SimpleSymbol::Colon),
         ("in", token::SimpleSymbol::In),
         ("notin", token::SimpleSymbol::NotIn),
+        ("->", token::SimpleSymbol::RightArrow),
+        ("<-", token::SimpleSymbol::LeftArrow),
         ("sum", token::SimpleSymbol::Sum),
         ("int", token::SimpleSymbol::Integral),
     ];

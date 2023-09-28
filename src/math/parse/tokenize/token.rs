@@ -48,6 +48,8 @@ pub enum SimpleSymbol {
     Colon,
     In,
     NotIn,
+    RightArrow,
+    LeftArrow,
     Sum,
     Integral,
 }
