@@ -116,3 +116,65 @@ impl Keyword {
         })
     }
 }
+
+impl From<Symbol> for char {
+    fn from(symbol: Symbol) -> Self {
+        use Symbol::*;
+        match symbol {
+            Special(symbol) => symbol.into(),
+            Simple(symbol) => symbol.into(),
+        }
+    }
+}
+
+impl From<SimpleSymbol> for char {
+    fn from(symbol: SimpleSymbol) -> Self {
+        use SimpleSymbol::*;
+        match symbol {
+            Plus => '+',
+            Minus => '-',
+            DotProduct => '⋅',
+            CrossProduct => '×',
+            Equal => '=',
+            NotEqual => '≠',
+            LessThan => '<',
+            GreaterThan => '>',
+            LessThanOrEqual => '≤',
+            GreaterThanOrEqual => '≥',
+            Colon => ':',
+            In => '∈',
+            NotIn => '∉',
+            RightArrow => '→',
+            LeftArrow => '←',
+            Sum => '∑',
+            Integral => '∫',
+        }
+    }
+}
+
+impl From<SpecialSymbol> for char {
+    fn from(symbol: SpecialSymbol) -> Self {
+        use SpecialSymbol::*;
+        match symbol {
+            Slash => '/',
+            Caret => '^',
+            Underscore => '_',
+            Grouping(grouping) => char::from(grouping),
+        }
+    }
+}
+
+impl From<Grouping> for char {
+    fn from(grouping: Grouping) -> Self {
+        use GroupingKind::*;
+        use GroupingSide::*;
+        match (grouping.kind, grouping.side) {
+            (Paren, Left) => '(',
+            (Paren, Right) => ')',
+            (Bracket, Left) => '[',
+            (Bracket, Right) => ']',
+            (Brace, Left) => '{',
+            (Brace, Right) => '}',
+        }
+    }
+}
