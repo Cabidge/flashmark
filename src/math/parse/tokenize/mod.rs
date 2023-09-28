@@ -132,6 +132,18 @@ impl<'a> Tokenizer<'a> {
         let num = self.parser.consume_while(|ch| ch.is_ascii_digit());
         (!num.is_empty()).then(|| Box::from(num))
     }
+
+    fn try_tokenize_text(&mut self) -> Option<Box<str>> {
+        if !self.parser.consume('"') {
+            return None;
+        }
+
+        let text = Box::from(self.parser.consume_while(|ch| ch != '"'));
+
+        self.parser.advance(); // consume the closing quote
+
+        Some(text)
+    }
 }
 
 impl<'a> Iterator for Tokenizer<'a> {
@@ -154,8 +166,8 @@ impl<'a> Iterator for Tokenizer<'a> {
             return Some(Token::Keyword(keyword));
         }
 
-        if self.parser.consume('\"') {
-            todo!("Text literals not implemented yet");
+        if let Some(text) = self.try_tokenize_text() {
+            return Some(Token::Literal(Literal::Text(text)));
         }
 
         Some(Token::Literal(Literal::Variable(self.parser.advance()?)))
