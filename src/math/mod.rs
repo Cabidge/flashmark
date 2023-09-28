@@ -78,7 +78,6 @@ fn render_variant(
         ExprVariant::Identifier(ident) => render_simple_tag("mi", &ident, output),
         ExprVariant::Operator(op) => render_operator(&op, output),
         ExprVariant::Num(num) => render_simple_tag("mn", &num, output),
-        // TODO: escape text
         ExprVariant::Text(text) => render_simple_tag("mtext", &text, output),
         ExprVariant::Unary(function, expr) => render_unary(function, *expr, output),
         ExprVariant::Grouping(group) => render_group(group, strip_parens, output),
