@@ -166,15 +166,34 @@ impl From<SpecialSymbol> for char {
 
 impl From<Grouping> for char {
     fn from(grouping: Grouping) -> Self {
-        use GroupingKind::*;
+        grouping.kind.into_char(grouping.side)
+    }
+}
+
+impl GroupingKind {
+    pub fn into_char(self, side: GroupingSide) -> char {
         use GroupingSide::*;
-        match (grouping.kind, grouping.side) {
-            (Paren, Left) => '(',
-            (Paren, Right) => ')',
-            (Bracket, Left) => '[',
-            (Bracket, Right) => ']',
-            (Brace, Left) => '{',
-            (Brace, Right) => '}',
+        match side {
+            Left => self.into_left_char(),
+            Right => self.into_right_char(),
+        }
+    }
+
+    pub fn into_left_char(self) -> char {
+        use GroupingKind::*;
+        match self {
+            Paren => '(',
+            Bracket => '[',
+            Brace => '{',
+        }
+    }
+
+    pub fn into_right_char(self) -> char {
+        use GroupingKind::*;
+        match self {
+            Paren => ')',
+            Bracket => ']',
+            Brace => '}',
         }
     }
 }

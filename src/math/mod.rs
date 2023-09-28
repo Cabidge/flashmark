@@ -4,7 +4,7 @@ use std::fmt::{self, Display};
 
 use parse::{
     expressions::{Expr, ExprVariant, Fraction, GroupExpr, UnitExpr},
-    tokenize::{Function, GroupingKind},
+    tokenize::Function,
 };
 
 pub fn render(input: &str) -> String {
@@ -92,24 +92,14 @@ fn render_group(group: GroupExpr, strip_parens: bool, output: &mut impl fmt::Wri
 
     output.write_str("<mrow>")?;
 
-    let left = match group.left {
-        GroupingKind::Paren => "(",
-        GroupingKind::Bracket => "[",
-        GroupingKind::Brace => "{",
-    };
-
-    let right = match group.right {
-        GroupingKind::Paren => ")",
-        GroupingKind::Bracket => "]",
-        GroupingKind::Brace => "}",
-    };
-
+    let left = group.left.into_left_char();
     render_simple_tag("mo", left, output)?;
 
     for expr in group.body {
         render_expr(expr, false, output)?;
     }
 
+    let right = group.right.into_right_char();
     render_simple_tag("mo", right, output)?;
 
     output.write_str("</mrow>")?;
