@@ -1,4 +1,7 @@
-use super::tokenize::token::{self, Function, GroupingKind};
+use super::{
+    sanitize::LazySanitize,
+    tokenize::token::{self, Function, GroupingKind},
+};
 
 #[derive(Debug, Clone)]
 pub enum Expr {
@@ -21,10 +24,10 @@ pub struct Fraction {
 
 #[derive(Debug, Clone)]
 pub enum ExprVariant {
-    Identifier(Box<str>),
-    Operator(Box<str>),
+    Identifier(LazySanitize),
+    Operator(LazySanitize),
     Num(Box<str>),
-    Text(Box<str>),
+    Text(LazySanitize),
     Unary(Function, Box<Expr>),
     Grouping(GroupExpr),
 }

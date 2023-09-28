@@ -1,6 +1,6 @@
 pub mod parse;
 
-use std::fmt;
+use std::fmt::{self, Display};
 
 use parse::{
     expressions::{Expr, ExprVariant, Fraction, GroupExpr, UnitExpr},
@@ -150,10 +150,10 @@ fn render_unary(function: Function, expr: Expr, output: &mut impl fmt::Write) ->
     Ok(())
 }
 
-fn render_simple_tag(tag: &str, inner: &str, output: &mut impl fmt::Write) -> fmt::Result {
+fn render_simple_tag(tag: &str, inner: impl Display, output: &mut impl fmt::Write) -> fmt::Result {
     write!(output, "<{}>{}</{}>", tag, inner, tag)
 }
 
-fn render_operator(op: &str, output: &mut impl fmt::Write) -> fmt::Result {
+fn render_operator(op: impl Display, output: &mut impl fmt::Write) -> fmt::Result {
     render_simple_tag("mo", op, output)
 }

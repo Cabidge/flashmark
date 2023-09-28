@@ -1,4 +1,5 @@
 pub mod expressions;
+pub mod sanitize;
 pub mod tokenize;
 
 use std::iter::Peekable;
@@ -71,9 +72,9 @@ impl<'a> Parser<'a> {
 
         let expr = match self.token_stream.next()? {
             Token::Literal(literal) => match literal {
-                Literal::Variable(ch) => ExprVariant::Identifier(Box::from(ch.to_string())),
+                Literal::Variable(ch) => ExprVariant::Identifier(ch.into()),
                 Literal::Number(num) => ExprVariant::Num(num),
-                Literal::Text(text) => ExprVariant::Text(text),
+                Literal::Text(text) => ExprVariant::Text(text.into()),
             },
             Token::Keyword(keyword) => {
                 if let Some(grouping_kind) = keyword.left_grouping() {
