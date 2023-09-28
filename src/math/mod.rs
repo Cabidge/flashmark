@@ -86,7 +86,7 @@ fn render_variant(
 }
 
 fn render_group(group: GroupExpr, strip_parens: bool, output: &mut impl fmt::Write) -> fmt::Result {
-    if strip_parens && group.left == group.right && group.left == GroupingKind::Paren {
+    if strip_parens && group.has_parens() {
         return render_row(group.body, output);
     }
 

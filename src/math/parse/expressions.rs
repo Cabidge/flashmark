@@ -45,3 +45,9 @@ impl From<Symbol> for ExprVariant {
         ExprVariant::Operator(symbol_ch.into())
     }
 }
+
+impl GroupExpr {
+    pub fn has_parens(&self) -> bool {
+        self.left == GroupingKind::Paren && self.right == GroupingKind::Paren
+    }
+}
