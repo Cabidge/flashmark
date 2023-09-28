@@ -129,6 +129,11 @@ impl<'a> Tokenizer<'a> {
     }
 
     fn try_tokenize_number(&mut self) -> Option<Box<str>> {
+        // infinity
+        if self.parser.consume_str("oo") {
+            return Some(Box::from("∞"));
+        }
+
         let num = self.parser.consume_while(|ch| ch.is_ascii_digit());
         (!num.is_empty()).then(|| Box::from(num))
     }
