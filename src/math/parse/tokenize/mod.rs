@@ -1,5 +1,9 @@
 use crate::parsing::StrParser;
 
+use self::token::{
+    Function, GroupingKind, GroupingSide, Keyword, Literal, SimpleSymbol, SpecialSymbol, Token,
+};
+
 pub mod token;
 
 pub struct Tokenizer<'a> {
@@ -14,47 +18,45 @@ impl<'a> Tokenizer<'a> {
     }
 
     const SIMPLE_SYMBOL_MAPPING: &[(&'static str, token::SimpleSymbol)] = &[
-        ("+", token::SimpleSymbol::Plus),
-        ("-", token::SimpleSymbol::Minus),
-        ("*", token::SimpleSymbol::DotProduct),
-        ("xx", token::SimpleSymbol::CrossProduct),
-        ("=", token::SimpleSymbol::Equal),
-        ("!=", token::SimpleSymbol::NotEqual),
-        ("<", token::SimpleSymbol::LessThan),
-        (">", token::SimpleSymbol::GreaterThan),
-        ("<=", token::SimpleSymbol::LessThanOrEqual),
-        (">=", token::SimpleSymbol::GreaterThanOrEqual),
-        (":", token::SimpleSymbol::Colon),
-        ("in", token::SimpleSymbol::In),
-        ("notin", token::SimpleSymbol::NotIn),
-        ("->", token::SimpleSymbol::RightArrow),
-        ("<-", token::SimpleSymbol::LeftArrow),
-        ("sum", token::SimpleSymbol::Sum),
-        ("int", token::SimpleSymbol::Integral),
+        ("+", SimpleSymbol::Plus),
+        ("-", SimpleSymbol::Minus),
+        ("*", SimpleSymbol::DotProduct),
+        ("xx", SimpleSymbol::CrossProduct),
+        ("=", SimpleSymbol::Equal),
+        ("!=", SimpleSymbol::NotEqual),
+        ("<", SimpleSymbol::LessThan),
+        (">", SimpleSymbol::GreaterThan),
+        ("<=", SimpleSymbol::LessThanOrEqual),
+        (">=", SimpleSymbol::GreaterThanOrEqual),
+        (":", SimpleSymbol::Colon),
+        ("in", SimpleSymbol::In),
+        ("notin", SimpleSymbol::NotIn),
+        ("->", SimpleSymbol::RightArrow),
+        ("<-", SimpleSymbol::LeftArrow),
+        ("sum", SimpleSymbol::Sum),
+        ("int", SimpleSymbol::Integral),
     ];
 
-    const SPECIAL_SYMBOL_MAPPING: &[(&'static str, token::SpecialSymbol)] = &[
-        ("/", token::SpecialSymbol::Slash),
-        ("^", token::SpecialSymbol::Caret),
-        ("_", token::SpecialSymbol::Underscore),
+    const SPECIAL_SYMBOL_MAPPING: &[(&'static str, SpecialSymbol)] = &[
+        ("/", SpecialSymbol::Slash),
+        ("^", SpecialSymbol::Caret),
+        ("_", SpecialSymbol::Underscore),
     ];
 
-    const GROUPING_MAPPING: &[(&'static str, &'static str, token::GroupingKind)] = &[
-        ("(", ")", token::GroupingKind::Paren),
-        ("[", "]", token::GroupingKind::Bracket),
-        ("{", "}", token::GroupingKind::Brace),
+    const GROUPING_MAPPING: &[(&'static str, &'static str, GroupingKind)] = &[
+        ("(", ")", GroupingKind::Paren),
+        ("[", "]", GroupingKind::Bracket),
+        ("{", "}", GroupingKind::Brace),
     ];
 
-    const FUNCTION_MAPPING: &[(&'static str, token::Function)] = &[
-        ("sqrt", token::Function::Sqrt),
-        ("sin", token::Function::Sin),
-        ("cos", token::Function::Cos),
-        ("tan", token::Function::Tan),
+    const FUNCTION_MAPPING: &[(&'static str, Function)] = &[
+        ("sqrt", Function::Sqrt),
+        ("sin", Function::Sin),
+        ("cos", Function::Cos),
+        ("tan", Function::Tan),
     ];
 
-    fn keyword_mapping() -> Vec<(&'static str, token::Keyword)> {
-        use token::{GroupingSide, Keyword};
-
+    fn keyword_mapping() -> Vec<(&'static str, Keyword)> {
         let mut keyword_mapping = vec![];
 
         keyword_mapping.extend(
@@ -90,9 +92,7 @@ impl<'a> Tokenizer<'a> {
         keyword_mapping
     }
 
-    fn try_tokenize_keyword(&mut self) -> Option<token::Keyword> {
-        use token::Keyword;
-
+    fn try_tokenize_keyword(&mut self) -> Option<Keyword> {
         let mut keyword_mapping = Self::keyword_mapping();
 
         let mut parser = self.parser.clone();
@@ -154,11 +154,9 @@ impl<'a> Tokenizer<'a> {
 }
 
 impl<'a> Iterator for Tokenizer<'a> {
-    type Item = token::Token;
+    type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
-        use token::{Literal, Token};
-
         self.parser.skip_whitespace();
 
         if self.parser.is_exhausted() {
