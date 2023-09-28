@@ -127,7 +127,27 @@ fn render_fraction(fraction: Fraction, output: &mut impl fmt::Write) -> fmt::Res
 }
 
 fn render_unary(function: Function, expr: Expr, output: &mut impl fmt::Write) -> fmt::Result {
-    todo!()
+    match function {
+        Function::Sqrt => {
+            output.write_str("<msqrt>")?;
+            render_expr(expr, true, output)?;
+            output.write_str("</msqrt>")?;
+        }
+        Function::Sin => {
+            render_simple_tag("mi", "sin", output)?;
+            render_expr(expr, false, output)?;
+        }
+        Function::Cos => {
+            render_simple_tag("mi", "cos", output)?;
+            render_expr(expr, false, output)?;
+        }
+        Function::Tan => {
+            render_simple_tag("mi", "tan", output)?;
+            render_expr(expr, false, output)?;
+        }
+    }
+
+    Ok(())
 }
 
 fn render_simple_tag(tag: &str, inner: &str, output: &mut impl fmt::Write) -> fmt::Result {
