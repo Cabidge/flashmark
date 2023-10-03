@@ -1,6 +1,6 @@
 use markdown_it::{
     parser::inline::{InlineRule, InlineState},
-    Node, NodeValue, Renderer,
+    Node, NodeValue, Renderer, MarkdownIt,
 };
 
 pub struct InlineMathRule;
@@ -8,6 +8,10 @@ pub struct InlineMathRule;
 #[derive(Debug)]
 pub struct InlineMathNode {
     pub rendered_body: String,
+}
+
+pub fn add(md: &mut MarkdownIt) {
+    md.inline.add_rule::<InlineMathRule>();
 }
 
 const LEFT_DELIM: &str = "$`";
