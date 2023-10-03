@@ -5,7 +5,9 @@ use markdown_it::{
 
 use crate::math::DisplayMode;
 
-pub struct InlineMathRule;
+use super::{DollarTickDelimiter, InlineDelimiter};
+
+pub struct InlineMathRule<D: InlineDelimiter = DollarTickDelimiter>(std::marker::PhantomData<D>);
 
 #[derive(Debug)]
 pub struct MathNode {
@@ -16,9 +18,6 @@ pub struct MathNode {
 pub fn add(md: &mut MarkdownIt) {
     md.inline.add_rule::<InlineMathRule>();
 }
-
-const LEFT_DELIM: &str = "$`";
-const RIGHT_DELIM: &str = "`$";
 
 impl MathNode {
     pub fn new(display_mode: DisplayMode, input: &str) -> Self {
@@ -34,18 +33,18 @@ impl MathNode {
     }
 }
 
-impl InlineRule for InlineMathRule {
-    const MARKER: char = '$';
+impl<D: InlineDelimiter> InlineRule for InlineMathRule<D> {
+    const MARKER: char = D::MARKER;
 
     fn run(state: &mut InlineState) -> Option<(Node, usize)> {
         let input = &state.src[state.pos..state.pos_max];
 
-        let input = input.strip_prefix(LEFT_DELIM)?;
-        let length = input.find(RIGHT_DELIM)?;
+        let input = input.strip_prefix(D::LEFT_DELIM)?;
+        let length = input.find(D::RIGHT_DELIM)?;
 
         let node = Node::new(MathNode::new(DisplayMode::Inline, &input[..length]));
 
-        let full_length = LEFT_DELIM.len() + length + RIGHT_DELIM.len();
+        let full_length = D::LEFT_DELIM.len() + length + D::RIGHT_DELIM.len();
 
         Some((node, full_length))
     }
