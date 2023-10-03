@@ -4,7 +4,7 @@ fn main() {
     markdown_it::plugins::cmark::add(&mut md);
 
     md.inline
-        .add_rule::<flashmark::markdown_it::math::InlineMathRule>();
+        .add_rule::<flashmark::markdown::math::InlineMathRule>();
 
     let html = md.parse("Hello $`2 in { 1, 2, 3 }`$ world!").render();
 
