@@ -122,7 +122,7 @@ impl<'a> Tokenizer<'a> {
                     None
                 }
             })
-            .find_map(|(word, keyword)| input.starts_with(word).then(|| (word.len(), keyword)))?;
+            .find_map(|(word, keyword)| input.starts_with(word).then_some((word.len(), keyword)))?;
 
         self.parser.advance_by(skip_amount);
 
