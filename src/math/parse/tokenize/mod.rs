@@ -110,7 +110,19 @@ impl<'a> Tokenizer<'a> {
         let (skip_amount, keyword) = Self::keyboard_mapping()
             .range(min_slice..=input)
             .rev()
-            .find_map(|(&word, &keyword)| input.starts_with(word).then(|| (word.len(), keyword)))?;
+            // This stops the search early if it finds a keyword that was longer
+            // than the previously checked keyword.
+            //
+            // The reason this is fine is because of how strings are sorted.
+            .scan(usize::MAX, |prev_len, (&word, &keyword)| {
+                if *prev_len >= word.len() {
+                    *prev_len = word.len();
+                    Some((word, keyword))
+                } else {
+                    None
+                }
+            })
+            .find_map(|(word, keyword)| input.starts_with(word).then(|| (word.len(), keyword)))?;
 
         self.parser.advance_by(skip_amount);
 
