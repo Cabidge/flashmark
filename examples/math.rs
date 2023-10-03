@@ -17,9 +17,9 @@ fn main() {
 }
 
 fn foo(input: &str) {
-    use flashmark::math::render;
+    use flashmark::math::{render, DisplayMode};
 
-    let output = render(input).replace("><", ">\n<");
+    let output = render(input, DisplayMode::Block).replace("><", ">\n<");
 
     let mut level = 0;
     for line in output.lines() {

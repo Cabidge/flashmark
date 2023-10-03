@@ -7,10 +7,21 @@ use parse::{
     tokenize::Function,
 };
 
-pub fn render(input: &str) -> String {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DisplayMode {
+    Inline,
+    Block,
+}
+
+pub fn render(input: &str, mode: DisplayMode) -> String {
     let mut output = String::new();
 
-    output.push_str("<math>");
+    let open_tag = match mode {
+        DisplayMode::Inline => "<math display='inline'>",
+        DisplayMode::Block => "<math display='block'>",
+    };
+
+    output.push_str(open_tag);
     render_row(parse::Parser::new(input), &mut output).expect("Writing to string should not fail");
     output.push_str("</math>");
 
