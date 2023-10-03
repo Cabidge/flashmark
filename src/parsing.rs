@@ -174,6 +174,13 @@ impl<'a> StrParser<'a> {
         Some(ch)
     }
 
+    pub fn advance_by(&mut self, amount: usize) -> Option<&str> {
+        let captured = self.input.get(self.position..(self.position + amount))?;
+        self.position += amount;
+
+        Some(captured)
+    }
+
     /// Tries to consume a specific character.
     ///
     /// Returns if the character was consumed.
