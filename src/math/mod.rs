@@ -28,7 +28,10 @@ pub fn render(input: &str, mode: DisplayMode) -> String {
     output
 }
 
-fn render_row(exprs: impl IntoIterator<Item = Expr>, output: &mut impl fmt::Write) -> fmt::Result {
+pub fn render_row(
+    exprs: impl IntoIterator<Item = Expr>,
+    output: &mut impl fmt::Write,
+) -> fmt::Result {
     output.write_str("<mrow>")?;
 
     for expr in exprs {
