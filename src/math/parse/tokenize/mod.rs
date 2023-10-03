@@ -1,4 +1,6 @@
 pub mod token;
+use std::collections::BTreeMap;
+
 pub use token::*;
 
 use crate::parsing::StrParser;
@@ -53,8 +55,16 @@ impl<'a> Tokenizer<'a> {
         ("tan", Function::Tan),
     ];
 
-    fn keyword_mapping() -> Vec<(&'static str, Keyword)> {
-        let mut keyword_mapping = vec![];
+    fn keyboard_mapping() -> &'static BTreeMap<&'static str, Keyword> {
+        use std::sync::OnceLock;
+
+        static KEYWORD_MAPPING: OnceLock<BTreeMap<&'static str, Keyword>> = OnceLock::new();
+
+        KEYWORD_MAPPING.get_or_init(Self::init_keyword_mapping)
+    }
+
+    fn init_keyword_mapping() -> BTreeMap<&'static str, Keyword> {
+        let mut keyword_mapping = BTreeMap::new();
 
         keyword_mapping.extend(
             Self::SIMPLE_SYMBOL_MAPPING
@@ -90,41 +100,21 @@ impl<'a> Tokenizer<'a> {
     }
 
     fn try_tokenize_keyword(&mut self) -> Option<Keyword> {
-        let mut keyword_mapping = Self::keyword_mapping();
+        let input = self.parser.rest();
 
-        let mut parser = self.parser.clone();
+        let min_slice = {
+            let ch = input.chars().next()?;
+            &input[..ch.len_utf8()]
+        };
 
-        // remember the latest keyword match and the parser state
-        let mut last_match: Option<(Keyword, StrParser<'a>)> = None;
+        let (skip_amount, keyword) = Self::keyboard_mapping()
+            .range(min_slice..=input)
+            .rev()
+            .find_map(|(&word, &keyword)| input.starts_with(word).then(|| (word.len(), keyword)))?;
 
-        // loop until we have no more keywords to match
-        while !keyword_mapping.is_empty() {
-            let Some(ch) = parser.advance() else {
-                break;
-            };
+        self.parser.advance_by(skip_amount);
 
-            // remove all keywords that don't match the current character
-            keyword_mapping.retain_mut(|(symbol, _)| {
-                let Some(rest) = symbol.strip_prefix(ch) else {
-                    return false;
-                };
-                *symbol = rest;
-                true
-            });
-
-            if let Some(keyword) = keyword_mapping
-                .iter()
-                .find_map(|(symbol, keyword)| symbol.is_empty().then_some(*keyword))
-            {
-                // if we found a keyword, we want to remember the parser state
-                last_match = Some((keyword, parser.clone()));
-            }
-        }
-
-        last_match.map(|(keyword, parser)| {
-            self.parser = parser;
-            keyword
-        })
+        Some(keyword)
     }
 
     fn try_tokenize_number(&mut self) -> Option<Box<str>> {
