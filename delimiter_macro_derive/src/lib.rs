@@ -18,7 +18,14 @@ impl Parse for Delimiter {
 
         let (marker, left) = match input.parse::<Lit>()? {
             Lit::Str(left) => {
-                let marker = extract_marker(&left);
+                let marker_ch = left
+                    .value()
+                    .chars()
+                    .next()
+                    .expect("Left delimiter cannot be empty");
+
+                let marker = LitChar::new(marker_ch, left.span());
+
                 (marker, left)
             }
             Lit::Char(marker) => {
@@ -78,13 +85,6 @@ impl Parse for Delimiter {
 pub fn delimiter_macro_derive(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).unwrap();
     impl_inline_delimiter(&ast)
-}
-
-fn extract_marker(s: &LitStr) -> LitChar {
-    let marker_ch = s.value().chars().next().unwrap();
-    let marker = LitChar::new(marker_ch, s.span());
-
-    marker
 }
 
 fn impl_inline_delimiter(ast: &syn::DeriveInput) -> TokenStream {
