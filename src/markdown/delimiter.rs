@@ -11,12 +11,12 @@ pub trait InlineDelimiter: 'static {
 ///
 /// This delimiter looks like this: ``$`...`$``.
 #[derive(InlineDelimiter)]
-#[delimiter = "$`"]
+#[delimiter("$`", "`$")]
 pub struct DollarTickDelimiter;
 
 /// An alternative delimiter for inline math.
 ///
 /// This delimiter looks like this: `$...$`.
 #[derive(InlineDelimiter)]
-#[delimiter = '$']
+#[delimiter('$')]
 pub struct DollarDelimiter;

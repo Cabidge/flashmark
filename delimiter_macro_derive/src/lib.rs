@@ -1,5 +1,78 @@
 use proc_macro::TokenStream;
-use syn::{Expr, Lit, LitChar, LitStr};
+use syn::{
+    parse::{Parse, ParseStream},
+    Lit, LitChar, LitStr, Token,
+};
+
+struct Delimiter {
+    marker: LitChar,
+    left: LitStr,
+    right: Option<LitStr>,
+}
+
+impl Parse for Delimiter {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        if input.is_empty() {
+            return Err(input.error("Missing left delimiter"));
+        }
+
+        let (marker, left) = match input.parse::<Lit>()? {
+            Lit::Str(left) => {
+                let marker = extract_marker(&left);
+                (marker, left)
+            }
+            Lit::Char(marker) => {
+                let left = LitStr::new(&marker.value().to_string(), marker.span());
+                (marker, left)
+            }
+            lit => {
+                return Err(syn::Error::new(
+                    lit.span(),
+                    "Expected a string or a character",
+                ));
+            }
+        };
+
+        if input.is_empty() {
+            return Ok(Self {
+                marker,
+                left,
+                right: None,
+            });
+        }
+
+        input.parse::<Token![,]>()?;
+
+        if input.is_empty() {
+            return Ok(Self {
+                marker,
+                left,
+                right: None,
+            });
+        }
+
+        let right = match input.parse::<Lit>()? {
+            Lit::Str(s) => s,
+            Lit::Char(c) => LitStr::new(&c.value().to_string(), c.span()),
+            lit => {
+                return Err(syn::Error::new(
+                    lit.span(),
+                    "Expected a string or a character",
+                ));
+            }
+        };
+
+        if !input.is_empty() {
+            return Err(input.error("Unexpected token"));
+        }
+
+        Ok(Self {
+            marker,
+            left,
+            right: Some(right),
+        })
+    }
+}
 
 #[proc_macro_derive(InlineDelimiter, attributes(delimiter))]
 pub fn delimiter_macro_derive(input: TokenStream) -> TokenStream {
@@ -22,29 +95,13 @@ fn impl_inline_delimiter(ast: &syn::DeriveInput) -> TokenStream {
             continue;
         }
 
-        let Ok(meta) = attr.meta.require_name_value() else {
-            continue;
-        };
+        let Delimiter {
+            marker,
+            left,
+            right,
+        } = attr.meta.require_list().unwrap().parse_args().unwrap();
 
-        let (marker, left, right) = match &meta.value {
-            Expr::Lit(lit) => match &lit.lit {
-                Lit::Char(c) => {
-                    let delimiter = LitStr::new(&c.value().to_string(), c.span());
-                    (c.to_owned(), delimiter.clone(), delimiter)
-                }
-                Lit::Str(s) => {
-                    let marker = extract_marker(s);
-
-                    let left = s.to_owned();
-                    let right: String = left.value().chars().rev().collect();
-                    let right = LitStr::new(&right, left.span());
-
-                    (marker, left, right)
-                }
-                _ => panic!(),
-            },
-            _ => panic!(),
-        };
+        let right = right.unwrap_or_else(|| left.clone());
 
         return quote::quote! {
             impl InlineDelimiter for #name {
