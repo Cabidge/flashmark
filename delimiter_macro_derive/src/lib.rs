@@ -7,11 +7,11 @@ pub fn delimiter_macro_derive(input: TokenStream) -> TokenStream {
     impl_inline_delimiter(&ast)
 }
 
-fn delim_and_marker(s: &LitStr) -> (LitChar, LitStr) {
+fn extract_marker(s: &LitStr) -> LitChar {
     let marker_ch = s.value().chars().next().unwrap();
     let marker = LitChar::new(marker_ch, s.span());
 
-    (marker, s.to_owned())
+    marker
 }
 
 fn impl_inline_delimiter(ast: &syn::DeriveInput) -> TokenStream {
@@ -22,7 +22,9 @@ fn impl_inline_delimiter(ast: &syn::DeriveInput) -> TokenStream {
             continue;
         }
 
-        let Ok(meta) = attr.meta.require_name_value() else { continue };
+        let Ok(meta) = attr.meta.require_name_value() else {
+            continue;
+        };
 
         let (marker, left, right) = match &meta.value {
             Expr::Lit(lit) => match &lit.lit {
@@ -31,8 +33,9 @@ fn impl_inline_delimiter(ast: &syn::DeriveInput) -> TokenStream {
                     (c.to_owned(), delimiter.clone(), delimiter)
                 }
                 Lit::Str(s) => {
-                    let (marker, left) = delim_and_marker(s);
+                    let marker = extract_marker(s);
 
+                    let left = s.to_owned();
                     let right: String = left.value().chars().rev().collect();
                     let right = LitStr::new(&right, left.span());
 
