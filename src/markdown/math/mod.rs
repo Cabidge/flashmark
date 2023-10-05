@@ -1,7 +1,7 @@
 pub mod block;
 pub mod inline;
 
-pub use self::block::MathCodeBlockCoreRule;
+pub use self::block::MathFenceRule;
 pub use self::inline::InlineMathRule;
 
 use markdown_it::{MarkdownIt, Node, NodeValue, Renderer};
@@ -12,7 +12,7 @@ pub struct MathNode {
 }
 
 pub fn add(md: &mut MarkdownIt) {
-    md.add_rule::<MathCodeBlockCoreRule>();
+    md.add_rule::<MathFenceRule>();
     md.inline.add_rule::<InlineMathRule>();
 }
 

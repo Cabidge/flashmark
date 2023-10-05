@@ -4,11 +4,11 @@ use markdown_it::{
 
 use super::MathNode;
 
-pub struct MathCodeBlockCoreRule;
+pub struct MathFenceRule;
 
 const LANGUAGE: &str = "math";
 
-impl CoreRule for MathCodeBlockCoreRule {
+impl CoreRule for MathFenceRule {
     fn run(root: &mut Node, _md: &MarkdownIt) {
         root.walk_mut(|node, _depth| {
             if let Some(code_block) = node.cast_mut::<CodeFence>() {
