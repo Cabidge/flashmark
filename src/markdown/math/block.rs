@@ -1,21 +1,26 @@
 use markdown_it::{
-    parser::core::CoreRule, plugins::cmark::block::fence::CodeFence, MarkdownIt, Node,
+    parser::{core::CoreRule, extset::MarkdownItExt},
+    plugins::cmark::block::fence::CodeFence,
+    MarkdownIt, Node,
 };
 
 use super::MathNode;
 
 pub struct MathFenceRule;
 
-const LANGUAGE: &str = "math";
+#[derive(Debug, Clone, Copy)]
+pub struct MathFenceLanguage(&'static str);
 
 impl CoreRule for MathFenceRule {
-    fn run(root: &mut Node, _md: &MarkdownIt) {
+    fn run(root: &mut Node, md: &MarkdownIt) {
+        let MathFenceLanguage(language) = md.ext.get().copied().unwrap_or_default();
+
         root.walk_mut(|node, _depth| {
             let Some(code_block) = node.cast_mut::<CodeFence>() else {
                 return;
             };
 
-            if code_block.info.trim() != LANGUAGE {
+            if code_block.info.trim() != language {
                 return;
             }
 
@@ -24,5 +29,13 @@ impl CoreRule for MathFenceRule {
 
             *node = math_node;
         });
+    }
+}
+
+impl MarkdownItExt for MathFenceLanguage {}
+
+impl Default for MathFenceLanguage {
+    fn default() -> Self {
+        Self("math")
     }
 }
