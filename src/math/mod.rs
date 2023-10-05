@@ -20,12 +20,33 @@ pub fn render(input: &str, mode: DisplayMode) -> String {
         DisplayMode::Inline => "<math display='inline'>",
         DisplayMode::Block => "<math display='block'>",
     };
-
     output.push_str(open_tag);
-    render_row(parse::Parser::new(input), &mut output).expect("Writing to string should not fail");
+    render_content(input, mode, &mut output).expect("Writing to string should not fail");
     output.push_str("</math>");
 
     output
+}
+
+pub fn render_content(input: &str, mode: DisplayMode, output: &mut impl fmt::Write) -> fmt::Result {
+    match mode {
+        DisplayMode::Inline => render_row(parse::Parser::new(input), output),
+        DisplayMode::Block => render_rows(input.lines(), output),
+    }
+}
+
+pub fn render_rows<'a>(
+    rows: impl IntoIterator<Item = &'a str>,
+    output: &mut impl fmt::Write,
+) -> fmt::Result {
+    output.write_str("<mtable>")?;
+
+    for row in rows {
+        output.write_str("<mtr>")?;
+        render_row(parse::Parser::new(row), output)?;
+        output.write_str("</mtr>")?;
+    }
+
+    output.write_str("</mtable>")
 }
 
 pub fn render_row(
