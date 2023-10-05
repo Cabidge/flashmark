@@ -4,11 +4,8 @@ pub use self::inline::InlineMathRule;
 
 use markdown_it::{MarkdownIt, Node, NodeValue, Renderer};
 
-use crate::math::DisplayMode;
-
 #[derive(Debug)]
 pub struct MathNode {
-    pub display_mode: DisplayMode,
     pub body: String,
 }
 
@@ -17,7 +14,7 @@ pub fn add(md: &mut MarkdownIt) {
 }
 
 impl MathNode {
-    pub fn new(display_mode: DisplayMode, input: &str) -> Self {
+    pub fn new(input: &str) -> Self {
         use crate::math::{self, parse};
 
         let mut body = String::new();
@@ -26,18 +23,13 @@ impl MathNode {
 
         math::render_row(ast_parser, &mut body).expect("Writing to string should not fail");
 
-        Self { display_mode, body }
+        Self { body }
     }
 }
 
 impl NodeValue for MathNode {
-    fn render(&self, _node: &Node, fmt: &mut dyn Renderer) {
-        let display = match self.display_mode {
-            DisplayMode::Inline => "inline",
-            DisplayMode::Block => "block",
-        };
-
-        fmt.open("math", &[("display", display.to_string())]);
+    fn render(&self, node: &Node, fmt: &mut dyn Renderer) {
+        fmt.open("math", &node.attrs);
         fmt.text_raw(&self.body);
         fmt.close("math");
     }

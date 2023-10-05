@@ -5,10 +5,7 @@ use markdown_it::{
     Node,
 };
 
-use crate::{
-    markdown::{DollarTickDelimiter, InlineDelimiter},
-    math::DisplayMode,
-};
+use crate::markdown::{DollarTickDelimiter, InlineDelimiter};
 
 use super::MathNode;
 
@@ -25,7 +22,8 @@ impl<D: InlineDelimiter> InlineRule for InlineMathRule<D> {
         let input = input.strip_prefix(D::LEFT_DELIM)?;
         let length = input.find(D::RIGHT_DELIM)?;
 
-        let node = Node::new(MathNode::new(DisplayMode::Inline, &input[..length]));
+        let mut node = Node::new(MathNode::new(&input[..length]));
+        node.attrs.push(("display", "inline".into()));
 
         let full_length = D::LEFT_DELIM.len() + length + D::RIGHT_DELIM.len();
 
