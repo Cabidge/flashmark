@@ -19,7 +19,7 @@ impl CoreRule for MathFenceRule {
                 return;
             }
 
-            let mut math_node = Node::new(MathNode::new(&code_block.content));
+            let mut math_node = Node::new(MathNode::new_block(&code_block.content));
             math_node.attrs.push(("display", "block".into()));
 
             *node = math_node;

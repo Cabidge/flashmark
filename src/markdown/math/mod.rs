@@ -28,6 +28,15 @@ impl MathNode {
 
         Self { body }
     }
+
+    pub fn new_block(input: &str) -> Self {
+        use crate::math;
+
+        let mut body = String::new();
+        math::render_rows(input.lines(), &mut body).expect("Writing to string should not fail");
+
+        Self { body }
+    }
 }
 
 impl NodeValue for MathNode {
