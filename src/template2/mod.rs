@@ -31,7 +31,7 @@ impl<'a> Block<'a> {
     }
 }
 
-fn parse(engine: &rhai::Engine, scope: &mut rhai::Scope<'static>, input: &str) -> String {
+pub fn render(engine: &rhai::Engine, scope: &mut rhai::Scope<'static>, input: &str) -> String {
     let mut env = Environment { engine, scope };
 
     let mut output = String::new();
