@@ -23,10 +23,32 @@ struct Lines<'a> {
 
 impl<'a> Block<'a> {
     fn lines(&'a self) -> Lines<'a> {
+        let unindent_amount = self.min_indentation().saturating_sub(self.indent);
+
         Lines {
-            unindent_amount: 0, // TODO: calculate this value
+            unindent_amount,
             rest: &self.nodes,
             nested: None,
+        }
+    }
+
+    fn min_indentation(&self) -> usize {
+        self.nodes.iter().map(Node::indentation).min().unwrap_or(0)
+    }
+}
+
+impl<'a> Node<'a> {
+    fn indentation(&self) -> usize {
+        match self {
+            Node::Line(line) => {
+                let trimmed = line.trim_start();
+                if trimmed.is_empty() {
+                    0
+                } else {
+                    line.len() - trimmed.len()
+                }
+            }
+            Node::Block(block) => block.indent,
         }
     }
 }
