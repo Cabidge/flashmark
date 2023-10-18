@@ -21,6 +21,12 @@ struct Lines<'a> {
     nested: Option<Box<Lines<'a>>>,
 }
 
+struct Directive<'a> {
+    indent: usize,
+    name: &'a str,
+    args: Option<&'a str>,
+}
+
 impl<'a> Block<'a> {
     fn lines(&'a self) -> Lines<'a> {
         let unindent_amount = self.min_indentation().saturating_sub(self.indent);
@@ -65,6 +71,25 @@ pub fn render(engine: &rhai::Engine, scope: &mut rhai::Scope<'static>, input: &s
     output
 }
 
+fn parse_directive(line: &str) -> Option<Directive<'_>> {
+    let trimmed = line.trim_start();
+    let rest = trimmed.strip_prefix('@')?;
+
+    let indent = line.len() - trimmed.len();
+
+    let Some((name, args)) = rest.split_once(' ') else {
+        return Some(Directive {
+            indent,
+            name: rest,
+            args: None,
+        });
+    };
+
+    let args = Some(args.trim());
+
+    Some(Directive { indent, name, args })
+}
+
 fn parse_block<'a>(
     env: &mut Environment<'_>,
     lines: &mut impl Iterator<Item = &'a str>,
@@ -73,37 +98,35 @@ fn parse_block<'a>(
     let mut rows = vec![];
 
     while let Some(line) = lines.next() {
-        let trimmed = line.trim_start();
-        if let Some(directive) = trimmed.strip_prefix('@') {
-            // TODO: this only considers space indentation, not tabs
-            let indent = line.len() - trimmed.len();
+        if let Some(directive) = parse_directive(line) {
+            match (directive.name, directive.args) {
+                ("if", Some(condition)) => {
+                    let condition = env.engine.compile_expression(condition).unwrap();
+                    let block = Block {
+                        indent,
+                        nodes: parse_if(env, condition, lines),
+                    };
 
-            if let Some(condition) = directive.strip_prefix("if ") {
-                let condition = env.engine.compile_expression(condition).unwrap();
-                let block = Block {
-                    indent,
-                    nodes: parse_if(env, condition, lines),
-                };
+                    rows.push(Node::Block(block));
 
-                rows.push(Node::Block(block));
+                    continue;
+                }
+                ("for", Some(header)) => {
+                    let (binding, iterable) = header.split_once(" in ").unwrap();
+                    let binding = binding.trim();
+                    let iterable = env.engine.compile_expression(iterable).unwrap();
 
-                continue;
-            } else if let Some(header) = directive.strip_prefix("for ") {
-                let (binding, iterable) = header.split_once(" in ").unwrap();
-                let binding = binding.trim();
-                let iterable = env.engine.compile_expression(iterable).unwrap();
+                    let block = Block {
+                        indent,
+                        nodes: parse_for(env, binding, iterable, lines),
+                    };
 
-                let block = Block {
-                    indent,
-                    nodes: parse_for(env, binding, iterable, lines),
-                };
+                    rows.push(Node::Block(block));
 
-                rows.push(Node::Block(block));
-
-                continue;
+                    continue;
+                }
+                _ => (),
             }
-
-            // otherwise, it's a normal line
         }
     }
 
