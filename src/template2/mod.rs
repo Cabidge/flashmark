@@ -135,6 +135,10 @@ fn parse_for<'a>(
 }
 
 fn unindent(line: &str, amount: usize) -> &str {
+    if line.len() <= amount {
+        return line.trim_start();
+    }
+
     let (prefix, rest) = line.split_at(amount);
 
     if prefix.trim().is_empty() {
