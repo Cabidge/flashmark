@@ -46,11 +46,8 @@ impl<'a> Node<'a> {
         match self {
             Node::Line(line) => {
                 let trimmed = line.trim_start();
-                if trimmed.is_empty() {
-                    0
-                } else {
-                    line.len() - trimmed.len()
-                }
+                (!trimmed.is_empty()).then_some(line.len() - trimmed.len())
+            }
             Node::Block(block) => Some(block.indent),
         }
     }
@@ -176,5 +173,56 @@ impl<'a> Iterator for Lines<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         self.next_indented()
             .map(|line| unindent(line, self.unindent_amount))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod node_indentation {
+        use super::*;
+        use std::borrow::Cow;
+
+        #[test]
+        fn line() {
+            let node = Node::Line(Cow::Borrowed("  hello"));
+            assert_eq!(node.indentation(), Some(2));
+        }
+
+        #[test]
+        fn empty_line() {
+            let node = Node::Line(Cow::Borrowed("  "));
+            assert_eq!(node.indentation(), None);
+        }
+    }
+
+    mod unindent {
+        use super::*;
+
+        #[test]
+        fn empty() {
+            assert_eq!(unindent("", 2), "");
+        }
+
+        #[test]
+        fn no_indent() {
+            assert_eq!(unindent("hello", 2), "hello");
+        }
+
+        #[test]
+        fn indent() {
+            assert_eq!(unindent("  hello", 2), "hello");
+        }
+
+        #[test]
+        fn extra_indent() {
+            assert_eq!(unindent("    hello", 2), "  hello");
+        }
+
+        #[test]
+        fn over_unindent() {
+            assert_eq!(unindent("  hello", 10), "hello");
+        }
     }
 }
