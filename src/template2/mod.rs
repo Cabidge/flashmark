@@ -33,12 +33,16 @@ impl<'a> Block<'a> {
     }
 
     fn min_indentation(&self) -> usize {
-        self.nodes.iter().map(Node::indentation).min().unwrap_or(0)
+        self.nodes
+            .iter()
+            .filter_map(Node::indentation)
+            .min()
+            .unwrap_or(0)
     }
 }
 
 impl<'a> Node<'a> {
-    fn indentation(&self) -> usize {
+    fn indentation(&self) -> Option<usize> {
         match self {
             Node::Line(line) => {
                 let trimmed = line.trim_start();
@@ -47,8 +51,7 @@ impl<'a> Node<'a> {
                 } else {
                     line.len() - trimmed.len()
                 }
-            }
-            Node::Block(block) => block.indent,
+            Node::Block(block) => Some(block.indent),
         }
     }
 }
