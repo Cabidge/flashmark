@@ -128,6 +128,9 @@ fn parse_block<'a>(
                 _ => (),
             }
         }
+
+        let line = parse_line(env, line);
+        rows.push(Node::Line(line));
     }
 
     Block {
@@ -136,8 +139,29 @@ fn parse_block<'a>(
     }
 }
 
-fn parse_row<'a>(env: &mut Environment<'_>, line: &'a str) -> Node<'a> {
-    todo!()
+fn parse_line<'a>(env: &mut Environment<'_>, line: &'a str) -> Cow<'a, str> {
+    if !line.contains("@(") {
+        return Cow::Borrowed(line);
+    }
+
+    let mut output = String::new();
+    let mut line = line;
+    while let Some((head, rest)) = line.split_once("@(") {
+        use std::fmt::Write;
+
+        let (expr, rest) = rest.split_once(')').unwrap_or((rest, ""));
+        line = rest;
+
+        let value = env
+            .engine
+            .eval_expression_with_scope::<rhai::Dynamic>(env.scope, expr)
+            .unwrap();
+
+        write!(output, "{}{}", head, value).expect("Writing to String should never fail");
+    }
+    output.push_str(line);
+
+    Cow::Owned(output)
 }
 
 fn parse_if<'a>(
