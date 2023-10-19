@@ -42,9 +42,7 @@ pub fn render(engine: &rhai::Engine, scope: &mut rhai::Scope<'static>, input: &s
     let mut env = Environment { engine, scope };
 
     let mut output = String::new();
-    parse_block(&mut env, &mut input.lines(), 0, |_| false)
-        .0
-        .render(&mut env, 0, &mut output);
+    parse_root(&mut env, &mut input.lines()).render(&mut env, 0, &mut output);
 
     output
 }
@@ -66,6 +64,13 @@ fn parse_directive(line: &str) -> Option<Directive<'_>> {
     let args = Some(args.trim());
 
     Some(Directive { indent, name, args })
+}
+
+fn parse_root<'a>(
+    env: &mut Environment<'_>,
+    lines: &mut impl Iterator<Item = &'a str>,
+) -> Block<'a> {
+    parse_block(env, lines, 0, |_| false).0
 }
 
 fn parse_block<'a>(
