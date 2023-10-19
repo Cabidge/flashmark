@@ -42,7 +42,10 @@ pub fn render(engine: &rhai::Engine, scope: &mut rhai::Scope<'static>, input: &s
     let mut env = Environment { engine, scope };
 
     let mut output = String::new();
-    parse_block(&mut env, &mut input.lines(), 0, None).render(&mut env, 0, &mut output);
+    parse_block(&mut env, &mut input.lines(), 0, |_| false)
+        .0
+        .render(&mut env, 0, &mut output);
+
     output
 }
 
@@ -69,12 +72,19 @@ fn parse_block<'a>(
     env: &mut Environment<'_>,
     lines: &mut impl Iterator<Item = &'a str>,
     indent: usize,
-    sentinel: Option<&str>,
-) -> Block<'a> {
+    mut is_sentinel: impl FnMut(&Directive<'a>) -> bool,
+) -> (Block<'a>, Option<Directive<'a>>) {
     let mut rows = vec![];
+
+    let mut closing_directive = None;
 
     while let Some(line) = lines.next() {
         if let Some(directive) = parse_directive(line) {
+            if is_sentinel(&directive) {
+                closing_directive = Some(directive);
+                break;
+            }
+
             match (directive.name, directive.args) {
                 ("if", Some(condition)) => {
                     let block = parse_if_chain(env, condition, lines, directive.indent);
@@ -88,7 +98,9 @@ fn parse_block<'a>(
                     let binding = binding.trim();
                     let iterable = env.engine.compile_expression(iterable).unwrap();
 
-                    let block = parse_block(env, lines, directive.indent, Some("end"));
+                    let (block, _) = parse_block(env, lines, directive.indent, |directive| {
+                        directive.name == "end" && directive.args.is_none()
+                    });
 
                     rows.push(Node::For(ForBlock {
                         binding,
@@ -98,7 +110,6 @@ fn parse_block<'a>(
 
                     continue;
                 }
-                (name, _) if Some(name) == sentinel => break,
                 _ => (),
             }
         }
@@ -107,10 +118,12 @@ fn parse_block<'a>(
         rows.push(Node::Line(line));
     }
 
-    Block {
+    let block = Block {
         indent,
         nodes: rows,
-    }
+    };
+
+    (block, closing_directive)
 }
 
 fn parse_line<'a>(env: &mut Environment<'_>, line: &'a str) -> Cow<'a, str> {
