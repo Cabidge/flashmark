@@ -130,7 +130,7 @@ fn parse_block<'a>(
         if let Some(directive) = parse_directive(line) {
             match (directive.name, directive.args) {
                 ("if", Some(condition)) => {
-                    let block = parse_if_chain(env, condition, lines, indent);
+                    let block = parse_if_chain(env, condition, lines, directive.indent);
 
                     rows.push(Node::If(block));
 
@@ -141,7 +141,7 @@ fn parse_block<'a>(
                     let binding = binding.trim();
                     let iterable = env.engine.compile_expression(iterable).unwrap();
 
-                    let block = parse_block(env, lines, indent, Some("end"));
+                    let block = parse_block(env, lines, directive.indent, Some("end"));
 
                     rows.push(Node::For(ForBlock {
                         binding,
