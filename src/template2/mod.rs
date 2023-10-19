@@ -41,8 +41,9 @@ struct Directive<'a> {
 pub fn render(engine: &rhai::Engine, scope: &mut rhai::Scope<'static>, input: &str) -> String {
     let mut env = Environment { engine, scope };
 
-    parse_block(&mut env, &mut input.lines(), 0, None);
-    todo!()
+    let mut output = String::new();
+    parse_block(&mut env, &mut input.lines(), 0, None).render(&mut env, 0, &mut output);
+    output
 }
 
 fn parse_directive(line: &str) -> Option<Directive<'_>> {
@@ -168,6 +169,16 @@ impl<'a> Block<'a> {
             .min()
             .unwrap_or(0)
     }
+
+    fn render(&self, env: &mut Environment<'_>, unindent_amount: usize, output: &mut String) {
+        let inner_unindent = self.min_indentation().saturating_sub(self.indent);
+
+        let unindent_amount = unindent_amount + inner_unindent;
+
+        for node in self.nodes.iter() {
+            node.render(env, unindent_amount, output);
+        }
+    }
 }
 
 impl<'a> IfChainBlock<'a> {
@@ -177,6 +188,38 @@ impl<'a> IfChainBlock<'a> {
             .map(|if_block| if_block.block.indent)
             .chain(self.else_block.as_ref().map(|block| block.indent))
             .min()
+    }
+
+    fn get_branch(&self, env: &mut Environment<'_>) -> Option<&Block<'a>> {
+        for block in self.if_blocks.iter() {
+            if env.engine.eval_ast::<bool>(&block.condition).unwrap() {
+                return Some(&block.block);
+            }
+        }
+
+        self.else_block.as_ref()
+    }
+
+    fn render(&self, env: &mut Environment<'_>, unindent_amount: usize, output: &mut String) {
+        let Some(block) = self.get_branch(env) else {
+            return;
+        };
+
+        block.render(env, unindent_amount, output);
+    }
+}
+
+impl<'a> ForBlock<'a> {
+    fn render(&self, env: &mut Environment<'_>, unindent_amount: usize, output: &mut String) {
+        let iterable = env.engine.eval_ast::<rhai::Array>(&self.iterable).unwrap();
+
+        for item in iterable.iter() {
+            env.scope.push(self.binding, item.clone());
+
+            self.block.render(env, unindent_amount, output);
+
+            env.scope.pop();
+        }
     }
 }
 
@@ -189,6 +232,17 @@ impl<'a> Node<'a> {
             }
             Node::If(if_block) => if_block.min_indentation(),
             Node::For(for_block) => Some(for_block.block.indent),
+        }
+    }
+
+    fn render(&self, env: &mut Environment<'_>, unindent_amount: usize, output: &mut String) {
+        match self {
+            Node::Line(line) => {
+                output.push_str(unindent(line, unindent_amount));
+                output.push('\n');
+            }
+            Node::If(if_block) => if_block.render(env, unindent_amount, output),
+            Node::For(for_block) => for_block.render(env, unindent_amount, output),
         }
     }
 }
