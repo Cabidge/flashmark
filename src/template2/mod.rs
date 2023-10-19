@@ -32,71 +32,17 @@ enum Node<'a> {
     For(ForBlock<'a>),
 }
 
-struct Lines<'a> {
-    unindent_amount: usize,
-    nodes: std::slice::Iter<'a, Node<'a>>,
-    nested: Option<Box<Lines<'a>>>,
-}
-
 struct Directive<'a> {
     indent: usize,
     name: &'a str,
     args: Option<&'a str>,
 }
 
-impl<'a> Block<'a> {
-    fn lines(&'a self) -> Lines<'a> {
-        let unindent_amount = self.min_indentation().saturating_sub(self.indent);
-
-        Lines {
-            unindent_amount,
-            nodes: self.nodes.iter(),
-            nested: None,
-        }
-    }
-
-    fn min_indentation(&self) -> usize {
-        self.nodes
-            .iter()
-            .filter_map(Node::indentation)
-            .min()
-            .unwrap_or(0)
-    }
-}
-
-impl<'a> IfChainBlock<'a> {
-    fn min_indentation(&self) -> Option<usize> {
-        self.if_blocks
-            .iter()
-            .map(|if_block| if_block.block.indent)
-            .chain(self.else_block.as_ref().map(|block| block.indent))
-            .min()
-    }
-}
-
-impl<'a> Node<'a> {
-    fn indentation(&self) -> Option<usize> {
-        match self {
-            Node::Line(line) => {
-                let trimmed = line.trim_start();
-                (!trimmed.is_empty()).then_some(line.len() - trimmed.len())
-            }
-            Node::If(if_block) => if_block.min_indentation(),
-            Node::For(for_block) => Some(for_block.block.indent),
-        }
-    }
-}
-
 pub fn render(engine: &rhai::Engine, scope: &mut rhai::Scope<'static>, input: &str) -> String {
     let mut env = Environment { engine, scope };
 
-    let mut output = String::new();
-    for line in parse_block(&mut env, &mut input.lines(), 0, None).lines() {
-        output.push_str(line);
-        output.push('\n');
-    }
-
-    output
+    parse_block(&mut env, &mut input.lines(), 0, None);
+    todo!()
 }
 
 fn parse_directive(line: &str) -> Option<Directive<'_>> {
@@ -214,31 +160,36 @@ fn unindent(line: &str, amount: usize) -> &str {
     }
 }
 
-impl<'a> Lines<'a> {
-    fn next_indented(&mut self) -> Option<&'a str> {
-        if let Some(nested) = &mut self.nested {
-            if let Some(line) = nested.next() {
-                return Some(line);
-            } else {
-                self.nested = None;
-            }
-        }
-
-        let row = self.nodes.next()?;
-
-        match row {
-            Node::Line(line) => Some(line),
-            _ => todo!(),
-        }
+impl<'a> Block<'a> {
+    fn min_indentation(&self) -> usize {
+        self.nodes
+            .iter()
+            .filter_map(Node::indentation)
+            .min()
+            .unwrap_or(0)
     }
 }
 
-impl<'a> Iterator for Lines<'a> {
-    type Item = &'a str;
+impl<'a> IfChainBlock<'a> {
+    fn min_indentation(&self) -> Option<usize> {
+        self.if_blocks
+            .iter()
+            .map(|if_block| if_block.block.indent)
+            .chain(self.else_block.as_ref().map(|block| block.indent))
+            .min()
+    }
+}
 
-    fn next(&mut self) -> Option<Self::Item> {
-        self.next_indented()
-            .map(|line| unindent(line, self.unindent_amount))
+impl<'a> Node<'a> {
+    fn indentation(&self) -> Option<usize> {
+        match self {
+            Node::Line(line) => {
+                let trimmed = line.trim_start();
+                (!trimmed.is_empty()).then_some(line.len() - trimmed.len())
+            }
+            Node::If(if_block) => if_block.min_indentation(),
+            Node::For(for_block) => Some(for_block.block.indent),
+        }
     }
 }
 
