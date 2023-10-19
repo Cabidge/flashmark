@@ -10,9 +10,26 @@ struct Block<'a> {
     nodes: Vec<Node<'a>>,
 }
 
+struct IfBlock<'a> {
+    condition: rhai::AST,
+    block: Block<'a>,
+}
+
+struct IfChainBlock<'a> {
+    if_blocks: Vec<IfBlock<'a>>,
+    else_block: Option<Block<'a>>,
+}
+
+struct ForBlock<'a> {
+    binding: &'a str,
+    iterable: rhai::AST,
+    block: Block<'a>,
+}
+
 enum Node<'a> {
     Line(Cow<'a, str>),
-    Block(Block<'a>),
+    If(IfChainBlock<'a>),
+    For(ForBlock<'a>),
 }
 
 struct Lines<'a> {
@@ -47,6 +64,16 @@ impl<'a> Block<'a> {
     }
 }
 
+impl<'a> IfChainBlock<'a> {
+    fn min_indentation(&self) -> Option<usize> {
+        self.if_blocks
+            .iter()
+            .map(|if_block| if_block.block.indent)
+            .chain(self.else_block.as_ref().map(|block| block.indent))
+            .min()
+    }
+}
+
 impl<'a> Node<'a> {
     fn indentation(&self) -> Option<usize> {
         match self {
@@ -54,7 +81,8 @@ impl<'a> Node<'a> {
                 let trimmed = line.trim_start();
                 (!trimmed.is_empty()).then_some(line.len() - trimmed.len())
             }
-            Node::Block(block) => Some(block.indent),
+            Node::If(if_block) => if_block.min_indentation(),
+            Node::For(for_block) => Some(for_block.block.indent),
         }
     }
 }
@@ -63,7 +91,7 @@ pub fn render(engine: &rhai::Engine, scope: &mut rhai::Scope<'static>, input: &s
     let mut env = Environment { engine, scope };
 
     let mut output = String::new();
-    for line in parse_block(&mut env, &mut input.lines(), 0).lines() {
+    for line in parse_block(&mut env, &mut input.lines(), 0, None).lines() {
         output.push_str(line);
         output.push('\n');
     }
@@ -94,6 +122,7 @@ fn parse_block<'a>(
     env: &mut Environment<'_>,
     lines: &mut impl Iterator<Item = &'a str>,
     indent: usize,
+    sentinel: Option<&str>,
 ) -> Block<'a> {
     let mut rows = vec![];
 
@@ -101,13 +130,9 @@ fn parse_block<'a>(
         if let Some(directive) = parse_directive(line) {
             match (directive.name, directive.args) {
                 ("if", Some(condition)) => {
-                    let condition = env.engine.compile_expression(condition).unwrap();
-                    let block = Block {
-                        indent,
-                        nodes: parse_if(env, condition, lines),
-                    };
+                    let block = parse_if_chain(env, condition, lines, indent);
 
-                    rows.push(Node::Block(block));
+                    rows.push(Node::If(block));
 
                     continue;
                 }
@@ -116,15 +141,17 @@ fn parse_block<'a>(
                     let binding = binding.trim();
                     let iterable = env.engine.compile_expression(iterable).unwrap();
 
-                    let block = Block {
-                        indent,
-                        nodes: parse_for(env, binding, iterable, lines),
-                    };
+                    let block = parse_block(env, lines, indent, Some("end"));
 
-                    rows.push(Node::Block(block));
+                    rows.push(Node::For(ForBlock {
+                        binding,
+                        iterable,
+                        block,
+                    }));
 
                     continue;
                 }
+                (name, _) if Some(name) == sentinel => break,
                 _ => (),
             }
         }
@@ -164,20 +191,12 @@ fn parse_line<'a>(env: &mut Environment<'_>, line: &'a str) -> Cow<'a, str> {
     Cow::Owned(output)
 }
 
-fn parse_if<'a>(
+fn parse_if_chain<'a>(
     env: &mut Environment<'_>,
-    condition: rhai::AST,
+    condition: &str,
     lines: &mut impl Iterator<Item = &'a str>,
-) -> Vec<Node<'a>> {
-    todo!()
-}
-
-fn parse_for<'a>(
-    env: &mut Environment<'_>,
-    binding: &str,
-    iterable: rhai::AST,
-    lines: &mut impl Iterator<Item = &'a str>,
-) -> Vec<Node<'a>> {
+    indent: usize,
+) -> IfChainBlock<'a> {
     todo!()
 }
 
@@ -210,10 +229,7 @@ impl<'a> Lines<'a> {
 
         match row {
             Node::Line(line) => Some(line),
-            Node::Block(block) => {
-                self.nested = Some(Box::new(block.lines()));
-                self.next()
-            }
+            _ => todo!(),
         }
     }
 }
