@@ -34,7 +34,7 @@ enum Node<'a> {
 
 struct Lines<'a> {
     unindent_amount: usize,
-    rest: &'a [Node<'a>],
+    nodes: std::slice::Iter<'a, Node<'a>>,
     nested: Option<Box<Lines<'a>>>,
 }
 
@@ -50,7 +50,7 @@ impl<'a> Block<'a> {
 
         Lines {
             unindent_amount,
-            rest: &self.nodes,
+            nodes: self.nodes.iter(),
             nested: None,
         }
     }
@@ -224,8 +224,7 @@ impl<'a> Lines<'a> {
             }
         }
 
-        let (row, rest) = self.rest.split_first()?;
-        self.rest = rest;
+        let row = self.nodes.next()?;
 
         match row {
             Node::Line(line) => Some(line),
