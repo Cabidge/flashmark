@@ -247,11 +247,7 @@ impl<'a> IfChainBlock<'a> {
 
     fn get_branch(&self, env: &mut Environment<'_>) -> Option<&Block<'a>> {
         for block in self.if_blocks.iter() {
-            if env
-                .engine
-                .eval_ast_with_scope::<bool>(env.scope, &block.condition)
-                .unwrap()
-            {
+            if env.eval_ast::<bool>(&block.condition).unwrap() {
                 return Some(&block.block);
             }
         }
@@ -270,10 +266,7 @@ impl<'a> IfChainBlock<'a> {
 
 impl<'a> ForBlock<'a> {
     fn render(&self, env: &mut Environment<'_>, unindent_amount: usize, output: &mut String) {
-        let iterable = env
-            .engine
-            .eval_ast_with_scope::<rhai::Array>(env.scope, &self.iterable)
-            .unwrap();
+        let iterable = env.eval_ast::<rhai::Array>(&self.iterable).unwrap();
 
         for item in iterable.iter() {
             env.scope.push(self.binding, item.clone());
@@ -306,6 +299,15 @@ impl<'a> Node<'a> {
             Node::If(if_block) => if_block.render(env, unindent_amount, output),
             Node::For(for_block) => for_block.render(env, unindent_amount, output),
         }
+    }
+}
+
+impl<'a> Environment<'a> {
+    fn eval_ast<T: rhai::Variant + Clone>(
+        &mut self,
+        ast: &rhai::AST,
+    ) -> Result<T, Box<rhai::EvalAltResult>> {
+        self.engine.eval_ast_with_scope(self.scope, ast)
     }
 }
 
