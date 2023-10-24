@@ -137,7 +137,29 @@ fn parse_block<'a>(
 }
 
 fn parse_line<'a>(env: &mut Environment<'_>, line: &'a str) -> Line<'a> {
-    todo!()
+    let Some((front, mut rest)) = line.split_once("@(") else {
+        return Line {
+            front: line,
+            expressions: vec![],
+        };
+    };
+
+    fn split_expression(s: &str) -> (&str, &str) {
+        s.split_once(')').unwrap_or((s, ""))
+    }
+
+    let mut expressions = vec![];
+    while !rest.is_empty() {
+        let (expr, text) = split_expression(rest);
+        let expr = env.engine.compile_expression(expr).unwrap();
+
+        let (text, tail) = text.split_once("@(").unwrap_or((text, ""));
+        rest = tail;
+
+        expressions.push((expr, text));
+    }
+
+    Line { front, expressions }
 }
 
 fn parse_if_chain<'a>(
