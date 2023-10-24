@@ -3,6 +3,7 @@ use rhai::packages::Package;
 struct Environment<'a> {
     engine: &'a rhai::Engine,
     scope: &'a mut rhai::Scope<'static>,
+    runtime: rhai::GlobalRuntimeState,
 }
 
 struct Block<'a> {
@@ -44,7 +45,7 @@ struct Directive<'a> {
 }
 
 pub fn render(engine: &rhai::Engine, scope: &mut rhai::Scope<'static>, input: &str) -> String {
-    let mut env = Environment { engine, scope };
+    let mut env = Environment::new(engine, scope);
 
     let mut output = String::new();
     parse_root(&mut env, &mut input.lines()).render(&mut env, 0, &mut output);
@@ -272,18 +273,8 @@ impl<'a> IfChainBlock<'a> {
 
 impl<'a> ForBlock<'a> {
     fn render(&self, env: &mut Environment<'_>, unindent_amount: usize, output: &mut String) {
-        // really messy code just to get the built-in iterators
-        // TODO: find a better way to do this garbage
-        let mut runtime = rhai::GlobalRuntimeState::new(env.engine);
-        runtime.push_import(
-            "global",
-            rhai::packages::StandardPackage::new().as_shared_module(),
-        );
-
-        let iterable = env.eval_ast::<rhai::Dynamic>(&self.iterable).unwrap();
-        let iter_fn = runtime.get_iter(iterable.type_id()).unwrap();
-
-        let iterator = iter_fn(iterable);
+        let iterable = env.eval_ast(&self.iterable).unwrap();
+        let iterator = env.get_iter(iterable).unwrap();
 
         for item in iterator {
             env.scope.push(self.binding, item.unwrap());
@@ -338,11 +329,35 @@ impl<'a> Node<'a> {
 }
 
 impl<'a> Environment<'a> {
+    fn new(engine: &'a rhai::Engine, scope: &'a mut rhai::Scope<'static>) -> Self {
+        // really messy code just to get the built-in iterators
+        // TODO: find a better way to do this garbage
+        let mut runtime = rhai::GlobalRuntimeState::new(engine);
+        runtime.push_import(
+            "global",
+            rhai::packages::StandardPackage::new().as_shared_module(),
+        );
+
+        Self {
+            engine,
+            scope,
+            runtime,
+        }
+    }
+
     fn eval_ast<T: rhai::Variant + Clone>(
         &mut self,
         ast: &rhai::AST,
     ) -> Result<T, Box<rhai::EvalAltResult>> {
         self.engine.eval_ast_with_scope(self.scope, ast)
+    }
+
+    fn get_iter(
+        &self,
+        value: rhai::Dynamic,
+    ) -> Option<Box<dyn Iterator<Item = Result<rhai::Dynamic, Box<rhai::EvalAltResult>>>>> {
+        let iter_fn = self.runtime.get_iter(value.type_id())?;
+        Some(iter_fn(value))
     }
 }
 
