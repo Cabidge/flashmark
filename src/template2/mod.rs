@@ -247,7 +247,11 @@ impl<'a> IfChainBlock<'a> {
 
     fn get_branch(&self, env: &mut Environment<'_>) -> Option<&Block<'a>> {
         for block in self.if_blocks.iter() {
-            if env.engine.eval_ast::<bool>(&block.condition).unwrap() {
+            if env
+                .engine
+                .eval_ast_with_scope::<bool>(env.scope, &block.condition)
+                .unwrap()
+            {
                 return Some(&block.block);
             }
         }
@@ -266,7 +270,10 @@ impl<'a> IfChainBlock<'a> {
 
 impl<'a> ForBlock<'a> {
     fn render(&self, env: &mut Environment<'_>, unindent_amount: usize, output: &mut String) {
-        let iterable = env.engine.eval_ast::<rhai::Array>(&self.iterable).unwrap();
+        let iterable = env
+            .engine
+            .eval_ast_with_scope::<rhai::Array>(env.scope, &self.iterable)
+            .unwrap();
 
         for item in iterable.iter() {
             env.scope.push(self.binding, item.clone());
