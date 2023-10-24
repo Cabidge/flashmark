@@ -26,8 +26,13 @@ struct ForBlock<'a> {
     block: Block<'a>,
 }
 
+enum Line<'a> {
+    Text(Cow<'a, str>),
+    Expr(Vec<(Cow<'a, str>, rhai::AST)>),
+}
+
 enum Node<'a> {
-    Line(Cow<'a, str>),
+    Line(Line<'a>),
     If(IfChainBlock<'a>),
     For(ForBlock<'a>),
 }
@@ -133,29 +138,8 @@ fn parse_block<'a>(
     (block, closing_directive)
 }
 
-fn parse_line<'a>(env: &mut Environment<'_>, line: &'a str) -> Cow<'a, str> {
-    if !line.contains("@(") {
-        return Cow::Borrowed(line);
-    }
-
-    let mut output = String::new();
-    let mut line = line;
-    while let Some((head, rest)) = line.split_once("@(") {
-        use std::fmt::Write;
-
-        let (expr, rest) = rest.split_once(')').unwrap_or((rest, ""));
-        line = rest;
-
-        let value = env
-            .engine
-            .eval_expression_with_scope::<rhai::Dynamic>(env.scope, expr)
-            .unwrap();
-
-        write!(output, "{}{}", head, value).expect("Writing to String should never fail");
-    }
-    output.push_str(line);
-
-    Cow::Owned(output)
+fn parse_line<'a>(env: &mut Environment<'_>, line: &'a str) -> Line<'a> {
+    todo!()
 }
 
 fn parse_if_chain<'a>(
@@ -278,13 +262,49 @@ impl<'a> ForBlock<'a> {
     }
 }
 
+impl<'a> Line<'a> {
+    fn indentation(&self) -> Option<usize> {
+        let front: &str = match self {
+            Line::Text(s) => s.as_ref(),
+            Line::Expr(pairs) => pairs.first()?.0.as_ref(),
+        };
+
+        let trimmed = front.trim_start();
+
+        (!trimmed.is_empty()).then_some(front.len() - trimmed.len())
+    }
+
+    fn render(&self, env: &mut Environment<'_>, unindent_amount: usize, output: &mut String) {
+        match self {
+            Line::Text(s) => {
+                let unindented = unindent(s, unindent_amount);
+                output.push_str(unindented);
+            }
+            Line::Expr(pairs) => {
+                let mut front = true;
+                for (text, expr) in pairs {
+                    use std::fmt::Write;
+
+                    if front {
+                        front = false;
+                        output.push_str(unindent(text, unindent_amount));
+                    } else {
+                        output.push_str(text);
+                    }
+
+                    let value = env.eval_ast::<rhai::Dynamic>(expr).unwrap();
+                    write!(output, "{}", value).expect("writing to string can't fail");
+                }
+            }
+        }
+        output.push('\n');
+    }
+}
+
 impl<'a> Node<'a> {
     fn indentation(&self) -> Option<usize> {
         match self {
-            Node::Line(line) => {
-                let trimmed = line.trim_start();
-                (!trimmed.is_empty()).then_some(line.len() - trimmed.len())
-            }
+            Node::Line(line) => line.indentation(),
             Node::If(if_block) => if_block.min_indentation(),
             Node::For(for_block) => Some(for_block.block.indent),
         }
@@ -292,10 +312,7 @@ impl<'a> Node<'a> {
 
     fn render(&self, env: &mut Environment<'_>, unindent_amount: usize, output: &mut String) {
         match self {
-            Node::Line(line) => {
-                output.push_str(unindent(line, unindent_amount));
-                output.push('\n');
-            }
+            Node::Line(line) => line.render(env, unindent_amount, output),
             Node::If(if_block) => if_block.render(env, unindent_amount, output),
             Node::For(for_block) => for_block.render(env, unindent_amount, output),
         }
@@ -319,15 +336,19 @@ mod tests {
         use super::*;
         use std::borrow::Cow;
 
+        fn new_line(s: &str) -> Node<'_> {
+            Node::Line(Line::Text(Cow::Borrowed(s)))
+        }
+
         #[test]
         fn line() {
-            let node = Node::Line(Cow::Borrowed("  hello"));
+            let node = new_line("  hello");
             assert_eq!(node.indentation(), Some(2));
         }
 
         #[test]
         fn empty_line() {
-            let node = Node::Line(Cow::Borrowed("  "));
+            let node = new_line("  ");
             assert_eq!(node.indentation(), None);
         }
     }
