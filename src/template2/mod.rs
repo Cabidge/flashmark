@@ -100,30 +100,9 @@ fn parse_block<'a>(
                 break;
             }
 
-            match (directive.name, directive.args) {
-                ("if", Some(condition)) => {
-                    let block = parse_if_chain(env, condition, lines, directive.indent);
-
-                    rows.push(Node::If(block));
-
-                    continue;
-                }
-                ("for", Some(header)) => {
-                    let (binding, iterable) = header.split_once(" in ").unwrap();
-                    let binding = binding.trim();
-                    let iterable = env.engine.compile_expression(iterable).unwrap();
-
-                    let (block, _) = parse_block(env, lines, directive.indent, is_end_directive);
-
-                    rows.push(Node::For(ForBlock {
-                        binding,
-                        iterable,
-                        block,
-                    }));
-
-                    continue;
-                }
-                _ => (),
+            if let Some(node) = parse_directive_block(env, directive, lines) {
+                rows.push(node);
+                continue;
             }
         }
 
@@ -163,6 +142,34 @@ fn parse_line<'a>(env: &mut Environment<'_>, line: &'a str) -> Line<'a> {
     }
 
     Line { front, expressions }
+}
+
+fn parse_directive_block<'a>(
+    env: &mut Environment,
+    directive: Directive<'a>,
+    lines: &mut impl Iterator<Item = &'a str>,
+) -> Option<Node<'a>> {
+    match (directive.name, directive.args) {
+        ("if", Some(condition)) => {
+            let block = parse_if_chain(env, condition, lines, directive.indent);
+
+            Some(Node::If(block))
+        }
+        ("for", Some(header)) => {
+            let (binding, iterable) = header.split_once(" in ").unwrap();
+            let binding = binding.trim();
+            let iterable = env.engine.compile_expression(iterable).unwrap();
+
+            let (block, _) = parse_block(env, lines, directive.indent, is_end_directive);
+
+            Some(Node::For(ForBlock {
+                binding,
+                iterable,
+                block,
+            }))
+        }
+        _ => None,
+    }
 }
 
 fn parse_if_chain<'a>(
