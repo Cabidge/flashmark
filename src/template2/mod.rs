@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 struct Environment<'a> {
     engine: &'a rhai::Engine,
     scope: &'a mut rhai::Scope<'static>,
@@ -26,9 +24,9 @@ struct ForBlock<'a> {
     block: Block<'a>,
 }
 
-enum Line<'a> {
-    Text(Cow<'a, str>),
-    Expr(Vec<(Cow<'a, str>, rhai::AST)>),
+struct Line<'a> {
+    front: &'a str,
+    expressions: Vec<(rhai::AST, &'a str)>,
 }
 
 enum Node<'a> {
@@ -264,38 +262,22 @@ impl<'a> ForBlock<'a> {
 
 impl<'a> Line<'a> {
     fn indentation(&self) -> Option<usize> {
-        let front: &str = match self {
-            Line::Text(s) => s.as_ref(),
-            Line::Expr(pairs) => pairs.first()?.0.as_ref(),
-        };
+        let trimmed = self.front.trim_start();
 
-        let trimmed = front.trim_start();
-
-        (!trimmed.is_empty()).then_some(front.len() - trimmed.len())
+        (!trimmed.is_empty()).then_some(self.front.len() - trimmed.len())
     }
 
     fn render(&self, env: &mut Environment<'_>, unindent_amount: usize, output: &mut String) {
-        match self {
-            Line::Text(s) => {
-                let unindented = unindent(s, unindent_amount);
-                output.push_str(unindented);
-            }
-            Line::Expr(pairs) => {
-                let mut front = true;
-                for (text, expr) in pairs {
-                    use std::fmt::Write;
+        let unindented = unindent(self.front, unindent_amount);
+        output.push_str(unindented);
 
-                    if front {
-                        front = false;
-                        output.push_str(unindent(text, unindent_amount));
-                    } else {
-                        output.push_str(text);
-                    }
+        for (expr, text) in &self.expressions {
+            use std::fmt::Write;
 
-                    let value = env.eval_ast::<rhai::Dynamic>(expr).unwrap();
-                    write!(output, "{}", value).expect("writing to string can't fail");
-                }
-            }
+            output.push_str(text);
+
+            let value = env.eval_ast::<rhai::Dynamic>(expr).unwrap();
+            write!(output, "{}", value).expect("writing to string can't fail");
         }
         output.push('\n');
     }
@@ -334,10 +316,12 @@ mod tests {
 
     mod node_indentation {
         use super::*;
-        use std::borrow::Cow;
 
         fn new_line(s: &str) -> Node<'_> {
-            Node::Line(Line::Text(Cow::Borrowed(s)))
+            Node::Line(Line {
+                front: s,
+                expressions: Vec::new(),
+            })
         }
 
         #[test]
