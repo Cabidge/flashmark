@@ -286,7 +286,8 @@ impl<'a> Line<'a> {
     fn indentation(&self) -> Option<usize> {
         let trimmed = self.front.trim_start();
 
-        (!trimmed.is_empty()).then_some(self.front.len() - trimmed.len())
+        (!trimmed.is_empty() || !self.expressions.is_empty())
+            .then_some(self.front.len() - trimmed.len())
     }
 
     fn render(&self, env: &mut Environment<'_>, unindent_amount: usize, output: &mut String) {
