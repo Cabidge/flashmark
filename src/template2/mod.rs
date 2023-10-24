@@ -162,7 +162,44 @@ fn parse_if_chain<'a>(
     lines: &mut impl Iterator<Item = &'a str>,
     indent: usize,
 ) -> IfChainBlock<'a> {
-    todo!()
+    let mut if_chain = IfChainBlock {
+        if_blocks: vec![],
+        else_block: None,
+    };
+
+    let mut cond_src = condition;
+    loop {
+        let condition = env.engine.compile_expression(cond_src).unwrap();
+
+        fn is_sentinel(directive: &Directive<'_>) -> bool {
+            matches!(
+                (directive.name, directive.args.is_none()),
+                ("elif", false) | ("else", true) | ("end", true)
+            )
+        }
+
+        let (block, closing_directive) = parse_block(env, lines, indent, is_sentinel);
+
+        if_chain.if_blocks.push(IfBlock { condition, block });
+
+        let Some(closing_directive) = closing_directive else {
+            return if_chain;
+        };
+
+        match (closing_directive.name, closing_directive.args) {
+            ("elif", Some(cond)) => cond_src = cond,
+            ("else", _) => break,
+            _ => return if_chain,
+        }
+    }
+
+    let (block, _) = parse_block(env, lines, indent, |directive| {
+        directive.name == "end" && directive.args.is_none()
+    });
+
+    if_chain.else_block = Some(block);
+
+    if_chain
 }
 
 fn unindent(line: &str, amount: usize) -> &str {
