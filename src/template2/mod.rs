@@ -296,10 +296,10 @@ impl<'a> Line<'a> {
         for (expr, text) in &self.expressions {
             use std::fmt::Write;
 
-            output.push_str(text);
-
             let value = env.eval_ast::<rhai::Dynamic>(expr).unwrap();
             write!(output, "{}", value).expect("writing to string can't fail");
+
+            output.push_str(text);
         }
         output.push('\n');
     }
