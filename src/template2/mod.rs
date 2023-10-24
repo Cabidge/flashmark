@@ -1,3 +1,5 @@
+use rhai::packages::Package;
+
 struct Environment<'a> {
     engine: &'a rhai::Engine,
     scope: &'a mut rhai::Scope<'static>,
@@ -270,10 +272,21 @@ impl<'a> IfChainBlock<'a> {
 
 impl<'a> ForBlock<'a> {
     fn render(&self, env: &mut Environment<'_>, unindent_amount: usize, output: &mut String) {
-        let iterable = env.eval_ast::<rhai::Array>(&self.iterable).unwrap();
+        // really messy code just to get the built-in iterators
+        // TODO: find a better way to do this garbage
+        let mut runtime = rhai::GlobalRuntimeState::new(env.engine);
+        runtime.push_import(
+            "global",
+            rhai::packages::StandardPackage::new().as_shared_module(),
+        );
 
-        for item in iterable.iter() {
-            env.scope.push(self.binding, item.clone());
+        let iterable = env.eval_ast::<rhai::Dynamic>(&self.iterable).unwrap();
+        let iter_fn = runtime.get_iter(iterable.type_id()).unwrap();
+
+        let iterator = iter_fn(iterable);
+
+        for item in iterator {
+            env.scope.push(self.binding, item.unwrap());
 
             self.block.render(env, unindent_amount, output);
 
