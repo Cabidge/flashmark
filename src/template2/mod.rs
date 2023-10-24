@@ -73,6 +73,10 @@ fn parse_root<'a>(
     parse_block(env, lines, 0, |_| false).0
 }
 
+fn is_end_directive(directive: &Directive<'_>) -> bool {
+    directive.name == "end" && directive.args.is_none()
+}
+
 fn parse_block<'a>(
     env: &mut Environment<'_>,
     lines: &mut impl Iterator<Item = &'a str>,
@@ -103,9 +107,7 @@ fn parse_block<'a>(
                     let binding = binding.trim();
                     let iterable = env.engine.compile_expression(iterable).unwrap();
 
-                    let (block, _) = parse_block(env, lines, directive.indent, |directive| {
-                        directive.name == "end" && directive.args.is_none()
-                    });
+                    let (block, _) = parse_block(env, lines, directive.indent, is_end_directive);
 
                     rows.push(Node::For(ForBlock {
                         binding,
@@ -193,9 +195,7 @@ fn parse_if_chain<'a>(
         }
     }
 
-    let (block, _) = parse_block(env, lines, indent, |directive| {
-        directive.name == "end" && directive.args.is_none()
-    });
+    let (block, _) = parse_block(env, lines, indent, is_end_directive);
 
     if_chain.else_block = Some(block);
 
