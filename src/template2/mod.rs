@@ -1,10 +1,6 @@
-use rhai::packages::Package;
+pub mod environment;
 
-struct Environment<'a> {
-    engine: &'a rhai::Engine,
-    scope: &'a mut rhai::Scope<'static>,
-    runtime: rhai::GlobalRuntimeState,
-}
+pub use environment::Environment;
 
 struct Block<'a> {
     indent: usize,
@@ -133,7 +129,7 @@ fn parse_line<'a>(env: &mut Environment<'_>, line: &'a str) -> Line<'a> {
     let mut expressions = vec![];
     while !rest.is_empty() {
         let (expr, text) = split_expression(rest);
-        let expr = env.engine.compile_expression(expr).unwrap();
+        let expr = env.engine().compile_expression(expr).unwrap();
 
         let (text, tail) = text.split_once("@(").unwrap_or((text, ""));
         rest = tail;
@@ -158,7 +154,7 @@ fn parse_directive_block<'a>(
         ("for", Some(header)) => {
             let (binding, iterable) = header.split_once(" in ").unwrap();
             let binding = binding.trim();
-            let iterable = env.engine.compile_expression(iterable).unwrap();
+            let iterable = env.engine().compile_expression(iterable).unwrap();
 
             let (block, _) = parse_block(env, lines, directive.indent, is_end_directive);
 
@@ -185,7 +181,7 @@ fn parse_if_chain<'a>(
 
     let mut cond_src = condition;
     loop {
-        let condition = env.engine.compile_expression(cond_src).unwrap();
+        let condition = env.engine().compile_expression(cond_src).unwrap();
 
         fn is_sentinel(directive: &Directive<'_>) -> bool {
             matches!(
@@ -284,11 +280,11 @@ impl<'a> ForBlock<'a> {
         let iterator = env.get_iter(iterable).unwrap();
 
         for item in iterator {
-            env.scope.push(self.binding, item.unwrap());
+            env.scope_mut().push(self.binding, item.unwrap());
 
             self.block.render(env, unindent_amount, output);
 
-            env.scope.pop();
+            env.scope_mut().pop();
         }
     }
 }
@@ -332,39 +328,6 @@ impl<'a> Node<'a> {
             Node::If(if_block) => if_block.render(env, unindent_amount, output),
             Node::For(for_block) => for_block.render(env, unindent_amount, output),
         }
-    }
-}
-
-impl<'a> Environment<'a> {
-    fn new(engine: &'a rhai::Engine, scope: &'a mut rhai::Scope<'static>) -> Self {
-        // really messy code just to get the built-in iterators
-        // TODO: find a better way to do this garbage
-        let mut runtime = rhai::GlobalRuntimeState::new(engine);
-        runtime.push_import(
-            "global",
-            rhai::packages::StandardPackage::new().as_shared_module(),
-        );
-
-        Self {
-            engine,
-            scope,
-            runtime,
-        }
-    }
-
-    fn eval_ast<T: rhai::Variant + Clone>(
-        &mut self,
-        ast: &rhai::AST,
-    ) -> Result<T, Box<rhai::EvalAltResult>> {
-        self.engine.eval_ast_with_scope(self.scope, ast)
-    }
-
-    fn get_iter(
-        &self,
-        value: rhai::Dynamic,
-    ) -> Option<Box<dyn Iterator<Item = Result<rhai::Dynamic, Box<rhai::EvalAltResult>>>>> {
-        let iter_fn = self.runtime.get_iter(value.type_id())?;
-        Some(iter_fn(value))
     }
 }
 
