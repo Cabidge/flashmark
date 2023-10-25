@@ -29,14 +29,6 @@ fn unindent(line: &str, amount: usize) -> &str {
 }
 
 impl<'a> Block<'a> {
-    fn min_indentation(&self) -> usize {
-        self.nodes
-            .iter()
-            .filter_map(Node::indentation)
-            .min()
-            .unwrap_or(0)
-    }
-
     fn render(&self, env: &mut Environment<'_>, unindent_amount: usize, output: &mut String) {
         let inner_unindent = self.min_indentation().saturating_sub(self.indent);
 
@@ -49,24 +41,6 @@ impl<'a> Block<'a> {
 }
 
 impl<'a> IfChainBlock<'a> {
-    fn min_indentation(&self) -> Option<usize> {
-        self.if_blocks
-            .iter()
-            .map(|if_block| if_block.block.indent)
-            .chain(self.else_block.as_ref().map(|block| block.indent))
-            .min()
-    }
-
-    fn get_branch(&self, env: &mut Environment<'_>) -> Option<&Block<'a>> {
-        for block in self.if_blocks.iter() {
-            if env.eval_ast::<bool>(&block.condition).unwrap() {
-                return Some(&block.block);
-            }
-        }
-
-        self.else_block.as_ref()
-    }
-
     fn render(&self, env: &mut Environment<'_>, unindent_amount: usize, output: &mut String) {
         let Some(block) = self.get_branch(env) else {
             return;
@@ -92,13 +66,6 @@ impl<'a> ForBlock<'a> {
 }
 
 impl<'a> Line<'a> {
-    fn indentation(&self) -> Option<usize> {
-        let trimmed = self.front.trim_start();
-
-        (!trimmed.is_empty() || !self.expressions.is_empty())
-            .then_some(self.front.len() - trimmed.len())
-    }
-
     fn render(&self, env: &mut Environment<'_>, unindent_amount: usize, output: &mut String) {
         let unindented = unindent(self.front, unindent_amount);
         output.push_str(unindented);
@@ -116,14 +83,6 @@ impl<'a> Line<'a> {
 }
 
 impl<'a> Node<'a> {
-    fn indentation(&self) -> Option<usize> {
-        match self {
-            Node::Line(line) => line.indentation(),
-            Node::If(if_block) => if_block.min_indentation(),
-            Node::For(for_block) => Some(for_block.block.indent),
-        }
-    }
-
     fn render(&self, env: &mut Environment<'_>, unindent_amount: usize, output: &mut String) {
         match self {
             Node::Line(line) => line.render(env, unindent_amount, output),

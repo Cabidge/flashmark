@@ -200,3 +200,52 @@ fn parse_if_chain<'a>(
 
     if_chain
 }
+
+impl<'a> Block<'a> {
+    pub fn min_indentation(&self) -> usize {
+        self.nodes
+            .iter()
+            .filter_map(Node::indentation)
+            .min()
+            .unwrap_or(0)
+    }
+}
+
+impl<'a> IfChainBlock<'a> {
+    pub fn min_indentation(&self) -> Option<usize> {
+        self.if_blocks
+            .iter()
+            .map(|if_block| if_block.block.indent)
+            .chain(self.else_block.as_ref().map(|block| block.indent))
+            .min()
+    }
+
+    pub fn get_branch(&self, env: &mut Environment<'_>) -> Option<&Block<'a>> {
+        for block in self.if_blocks.iter() {
+            if env.eval_ast::<bool>(&block.condition).unwrap() {
+                return Some(&block.block);
+            }
+        }
+
+        self.else_block.as_ref()
+    }
+}
+
+impl<'a> Line<'a> {
+    pub fn indentation(&self) -> Option<usize> {
+        let trimmed = self.front.trim_start();
+
+        (!trimmed.is_empty() || !self.expressions.is_empty())
+            .then_some(self.front.len() - trimmed.len())
+    }
+}
+
+impl<'a> Node<'a> {
+    pub fn indentation(&self) -> Option<usize> {
+        match self {
+            Node::Line(line) => line.indentation(),
+            Node::If(if_block) => if_block.min_indentation(),
+            Node::For(for_block) => Some(for_block.block.indent),
+        }
+    }
+}
