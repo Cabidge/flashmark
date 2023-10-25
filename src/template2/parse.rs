@@ -32,10 +32,10 @@ pub enum Node<'a> {
     For(ForBlock<'a>),
 }
 
-pub struct Directive<'a> {
-    pub indent: usize,
-    pub name: &'a str,
-    pub args: Option<&'a str>,
+struct Directive<'a> {
+    indent: usize,
+    name: &'a str,
+    args: Option<&'a str>,
 }
 
 pub fn parse_root<'a>(
