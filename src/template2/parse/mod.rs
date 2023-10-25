@@ -53,7 +53,7 @@ fn parse_block<'a>(
     indent: usize,
     mut is_sentinel: impl FnMut(&Directive<'a>) -> bool,
 ) -> (Block<'a>, Option<Directive<'a>>) {
-    let mut rows = vec![];
+    let mut nodes = vec![];
 
     let mut closing_directive = None;
 
@@ -65,19 +65,16 @@ fn parse_block<'a>(
             }
 
             if let Some(node) = parse_directive_block(env, directive, lines) {
-                rows.push(node);
+                nodes.push(node);
                 continue;
             }
         }
 
         let line = parse_line(env, line);
-        rows.push(Node::Line(line));
+        nodes.push(Node::Line(line));
     }
 
-    let block = Block {
-        indent,
-        nodes: rows,
-    };
+    let block = Block { indent, nodes };
 
     (block, closing_directive)
 }
