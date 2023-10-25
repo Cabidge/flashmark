@@ -1,3 +1,7 @@
+mod directive;
+
+use directive::Directive;
+
 use super::Environment;
 
 pub struct Block<'a> {
@@ -32,36 +36,11 @@ pub enum Node<'a> {
     For(ForBlock<'a>),
 }
 
-struct Directive<'a> {
-    indent: usize,
-    name: &'a str,
-    args: Option<&'a str>,
-}
-
 pub fn parse_root<'a>(
     env: &mut Environment<'_>,
     lines: &mut impl Iterator<Item = &'a str>,
 ) -> Block<'a> {
     parse_block(env, lines, 0, |_| false).0
-}
-
-fn parse_directive(line: &str) -> Option<Directive<'_>> {
-    let trimmed = line.trim_start();
-    let rest = trimmed.strip_prefix('@')?;
-
-    let indent = line.len() - trimmed.len();
-
-    let Some((name, args)) = rest.split_once(' ') else {
-        return Some(Directive {
-            indent,
-            name: rest,
-            args: None,
-        });
-    };
-
-    let args = Some(args.trim());
-
-    Some(Directive { indent, name, args })
 }
 
 fn is_end_directive(directive: &Directive<'_>) -> bool {
@@ -79,7 +58,7 @@ fn parse_block<'a>(
     let mut closing_directive = None;
 
     while let Some(line) = lines.next() {
-        if let Some(directive) = parse_directive(line) {
+        if let Ok(directive) = Directive::try_from(line) {
             if is_sentinel(&directive) {
                 closing_directive = Some(directive);
                 break;
