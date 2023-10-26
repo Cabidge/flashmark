@@ -36,10 +36,7 @@ pub enum Node<'a> {
     For(ForBlock<'a>),
 }
 
-pub fn parse_root<'a>(
-    env: &Environment<'_>,
-    lines: &mut impl Iterator<Item = &'a str>,
-) -> Block<'a> {
+pub fn parse_root<'a>(env: &Environment, lines: &mut impl Iterator<Item = &'a str>) -> Block<'a> {
     parse_block(env, lines, 0, |_| false).0
 }
 
@@ -51,15 +48,15 @@ pub fn parse_front_matter(input: &str) -> (Option<&str>, &str) {
         .unwrap_or((None, input))
 }
 
-fn is_end_directive(directive: &Directive<'_>) -> bool {
+fn is_end_directive(directive: &Directive) -> bool {
     directive.name == "end" && directive.args.is_none()
 }
 
 fn parse_block<'a>(
-    env: &Environment<'_>,
+    env: &Environment,
     lines: &mut impl Iterator<Item = &'a str>,
     indent: usize,
-    mut is_sentinel: impl FnMut(&Directive<'a>) -> bool,
+    mut is_sentinel: impl FnMut(&Directive) -> bool,
 ) -> (Block<'a>, Option<Directive<'a>>) {
     let mut block = Block {
         indent,
@@ -85,7 +82,7 @@ fn parse_block<'a>(
     (block, None)
 }
 
-fn parse_line<'a>(env: &Environment<'_>, line: &'a str) -> Line<'a> {
+fn parse_line<'a>(env: &Environment, line: &'a str) -> Line<'a> {
     let Some((front, mut rest)) = line.split_once("@(") else {
         return Line {
             front: line,
@@ -140,7 +137,7 @@ fn parse_directive_block<'a>(
 }
 
 fn parse_if_chain<'a>(
-    env: &Environment<'_>,
+    env: &Environment,
     condition: &str,
     lines: &mut impl Iterator<Item = &'a str>,
     indent: usize,
