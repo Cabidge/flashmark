@@ -227,3 +227,31 @@ impl<'a> Node<'a> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod node_indentation {
+        use super::*;
+
+        fn new_line(s: &str) -> Node<'_> {
+            Node::Line(Line {
+                front: s,
+                expressions: Vec::new(),
+            })
+        }
+
+        #[test]
+        fn line() {
+            let node = new_line("  hello");
+            assert_eq!(node.indentation(), Some(2));
+        }
+
+        #[test]
+        fn empty_line() {
+            let node = new_line("  ");
+            assert_eq!(node.indentation(), None);
+        }
+    }
+}
