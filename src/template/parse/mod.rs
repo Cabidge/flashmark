@@ -100,7 +100,7 @@ fn parse_line<'a>(env: &Environment<'_>, line: &'a str) -> Line<'a> {
     let mut expressions = vec![];
     while !rest.is_empty() {
         let (expr, text) = split_expression(rest);
-        let expr = env.engine().compile_expression(expr).unwrap();
+        let expr = env.compile_expr(expr).unwrap();
 
         let (text, tail) = text.split_once("@(").unwrap_or((text, ""));
         rest = tail;
@@ -125,7 +125,7 @@ fn parse_directive_block<'a>(
         ("for", Some(header)) => {
             let (binding, iterable) = header.split_once(" in ").unwrap();
             let binding = binding.trim();
-            let iterable = env.engine().compile_expression(iterable).unwrap();
+            let iterable = env.compile_expr(iterable).unwrap();
 
             let (block, _) = parse_block(env, lines, directive.indent, is_end_directive);
 
@@ -152,7 +152,7 @@ fn parse_if_chain<'a>(
 
     let mut cond_src = condition;
     loop {
-        let condition = env.engine().compile_expression(cond_src).unwrap();
+        let condition = env.compile_expr(cond_src).unwrap();
 
         fn is_sentinel(directive: &Directive<'_>) -> bool {
             matches!(

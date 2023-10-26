@@ -23,12 +23,13 @@ impl<'a> Environment<'a> {
         }
     }
 
-    pub fn engine(&self) -> &rhai::Engine {
-        self.engine
-    }
-
     pub fn scope_mut(&mut self) -> &mut rhai::Scope<'static> {
         self.scope
+    }
+
+    pub fn compile_expr(&self, script: impl AsRef<str>) -> Result<rhai::AST, rhai::ParseError> {
+        self.engine
+            .compile_expression_with_scope(self.scope, script)
     }
 
     pub fn eval_ast<T: rhai::Variant + Clone>(
