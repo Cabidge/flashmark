@@ -165,11 +165,10 @@ fn parse_if_chain<'a>(
 
         if_chain.if_blocks.push(IfBlock { condition, block });
 
-        let Some(closing_directive) = closing_directive else {
-            return if_chain;
-        };
-
-        match (closing_directive.name, closing_directive.args) {
+        match closing_directive
+            .map(|directive| (directive.name, directive.args))
+            .unwrap_or(("end", None))
+        {
             ("elif", Some(cond)) => cond_src = cond,
             ("else", _) => break,
             _ => return if_chain,
