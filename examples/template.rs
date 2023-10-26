@@ -43,7 +43,7 @@ fn main() {
         @end
     "#};
 
-    let output = flashmark::template2::render(&engine, &mut scope, input);
+    let output = flashmark::template::render_with_engine_and_scope(&engine, &mut scope, input);
 
     println!("{}", output);
 }

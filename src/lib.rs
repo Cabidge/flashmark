@@ -3,7 +3,6 @@ pub mod math;
 pub mod parsing;
 pub mod slides;
 pub mod template;
-pub mod template2;
 
 pub fn render(input: &str) -> Vec<String> {
     use markdown_it::MarkdownIt;

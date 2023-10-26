@@ -43,6 +43,14 @@ pub fn parse_root<'a>(
     parse_block(env, lines, 0, |_| false).0
 }
 
+pub fn parse_front_matter(input: &str) -> (Option<&str>, &str) {
+    input
+        .strip_prefix("---\n")
+        .and_then(|stripped| stripped.split_once("---\n"))
+        .map(|(front, input)| (Some(front), input))
+        .unwrap_or((None, input))
+}
+
 fn is_end_directive(directive: &Directive<'_>) -> bool {
     directive.name == "end" && directive.args.is_none()
 }

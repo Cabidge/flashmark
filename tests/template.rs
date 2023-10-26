@@ -2,14 +2,14 @@ use indoc::indoc;
 
 fn test_render(input: &str, expected: &str) {
     let actual = flashmark::template::render(input);
-    assert_eq!(actual, expected);
+    assert_eq!(actual.trim_end(), expected.trim_end());
 }
 
 fn test_render_with_scope(scope: &mut rhai::Scope<'static>, input: &str, expected: &str) {
     use flashmark::template;
     let actual = template::render_with_engine_and_scope(&template::new_engine(), scope, input);
 
-    assert_eq!(actual, expected);
+    assert_eq!(actual.trim_end(), expected.trim_end());
 }
 
 #[test]
@@ -20,8 +20,7 @@ fn front_matter() {
             let name = "World";
             ---
             Hello, @(name)!
-        "#}
-        .trim_end(),
+        "#},
         "Hello, World!",
     );
 }
@@ -65,28 +64,120 @@ fn expression_variables_and_arithmetic() {
 
 #[test]
 fn if_true_and_false() {
-    test_render("@if true { true }", " true ");
-    test_render("@if false { true }", "");
+    test_render(
+        indoc! {"
+            @if true
+                true
+            @end
+        "},
+        "true",
+    );
+    test_render(
+        indoc! {"
+            @if false
+                true
+            @end
+        "},
+        "",
+    );
 }
 
 #[test]
 fn if_else() {
-    test_render("@if true { true } @else { false }", " true ");
-    test_render("@if false { true } @else { false }", " false ");
+    test_render(
+        indoc! {"
+            @if true
+                true
+            @else
+                false
+            @end
+        "},
+        "true",
+    );
+    test_render(
+        indoc! {"
+            @if false
+                true
+            @else
+                false
+            @end
+        "},
+        "false",
+    );
 }
 
 #[test]
 fn if_elif() {
-    test_render("@if true { 1 } @elif true { 2 }", " 1 ");
-    test_render("@if false { 1 } @elif true { 2 }", " 2 ");
-    test_render("@if false { 1 } @elif false { 2 }", "");
+    test_render(
+        indoc! {"
+            @if true
+                1
+            @elif true
+                2
+            @end
+        "},
+        "1",
+    );
+    test_render(
+        indoc! {"
+            @if false
+                1
+            @elif true
+                2
+            @end
+        "},
+        "2",
+    );
+    test_render(
+        indoc! {"
+            @if false
+                1
+            @elif false
+                2
+            @end
+        "},
+        "",
+    );
 }
 
 #[test]
 fn if_elif_else() {
-    test_render("@if true { 1 } @elif true { 2 } @else { 3 }", " 1 ");
-    test_render("@if false { 1 } @elif true { 2 } @else { 3 }", " 2 ");
-    test_render("@if false { 1 } @elif false { 2 } @else { 3 }", " 3 ");
+    test_render(
+        indoc! {"
+            @if true
+                1
+            @elif true
+                2
+            @else
+                3
+            @end
+        "},
+        "1",
+    );
+    test_render(
+        indoc! {"
+            @if false
+                1
+            @elif true
+                2
+            @else
+                3
+            @end
+        "},
+        "2",
+    );
+    test_render(
+        indoc! {"
+            @if false
+                1
+            @elif false
+                2
+            @else
+                3
+            @end
+        "},
+        "3",
+    );
 }
 
 #[test]
@@ -94,13 +185,28 @@ fn if_expression() {
     let mut scope = rhai::Scope::new();
     scope.push("x", 1_i64);
 
-    test_render_with_scope(&mut scope, "@if x == 1 { 1 } @else { 2 }", " 1 ");
-    test_render_with_scope(&mut scope, "@if x == 2 { 1 } @else { 2 }", " 2 ");
-}
-
-#[test]
-fn if_newline() {
-    test_render("@if true {\n    true\n}", "    true");
+    test_render_with_scope(
+        &mut scope,
+        indoc! {"
+            @if x == 1
+                1
+            @else
+                2
+            @end
+        "},
+        "1",
+    );
+    test_render_with_scope(
+        &mut scope,
+        indoc! {"
+            @if x == 2
+                1
+            @else
+                2
+            @end
+        "},
+        "2",
+    );
 }
 
 #[test]
@@ -112,20 +218,27 @@ fn if_body_with_expression() {
         &mut scope,
         indoc! {"
             Hello, @(name)!
-            @if true {Hello, @(name)!}
-        "}
-        .trim_end(),
+            @if true
+                Hello, @(name)!
+            @end
+        "},
         indoc! {"
             Hello, World!
             Hello, World!
-        "}
-        .trim_end(),
+        "},
     );
 }
 
 #[test]
 fn for_array() {
-    test_render("@for x in [1, 2, 3] { @(x) }", " 1  2  3 ");
+    test_render(
+        indoc! {"
+            @for x in [1, 2, 3]
+                @(x)
+            @end
+        "},
+        "1\n2\n3",
+    );
 }
 
 #[test]
@@ -134,7 +247,15 @@ fn for_expression() {
     let arr: rhai::Array = vec![1.into(), 2.into(), 3.into()];
     scope.push("arr", arr);
 
-    test_render_with_scope(&mut scope, "@for x in arr { @(x) }", " 1  2  3 ");
+    test_render_with_scope(
+        &mut scope,
+        indoc! {"
+            @for x in arr
+                @(x)
+            @end
+        "},
+        "1\n2\n3",
+    );
 }
 
 #[test]
@@ -145,7 +266,13 @@ fn for_nested() {
 
     test_render_with_scope(
         &mut scope,
-        "@for x in arr {@for y in arr { (@(x), @(y)) }}",
-        " (1, 1)  (1, 2)  (1, 3)  (2, 1)  (2, 2)  (2, 3)  (3, 1)  (3, 2)  (3, 3) ",
+        indoc! {"
+            @for x in arr
+                @for y in arr
+                    (@(x), @(y))
+                @end
+            @end
+        "},
+        "(1, 1)\n(1, 2)\n(1, 3)\n(2, 1)\n(2, 2)\n(2, 3)\n(3, 1)\n(3, 2)\n(3, 3)",
     );
 }
