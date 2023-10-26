@@ -57,7 +57,7 @@ pub fn render_with_engine_and_scope(
     let mut env = Environment::new(engine, scope);
 
     let mut output = String::new();
-    parse_root(&mut env, &mut input.lines()).render(&mut env, 0, &mut output);
+    parse_root(&env, &mut input.lines()).render(&mut env, 0, &mut output);
 
     output
 }
