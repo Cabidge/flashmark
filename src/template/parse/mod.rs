@@ -82,24 +82,49 @@ fn parse_block<'a>(
     (block, None)
 }
 
+fn split_expr(mut line: &str) -> (&str, &str) {
+    let mut paren_count = 0;
+    while let Some(next) = line.strip_prefix('(') {
+        paren_count += 1;
+        line = next;
+    }
+
+    let mut end = 0;
+    let mut streak = 0;
+    for ch in line.chars() {
+        if paren_count == 0 {
+            // if there was no opening paren, we only want to match a single identifier
+            if !ch.is_alphabetic() {
+                break;
+            }
+        } else if ch == ')' {
+            streak += 1;
+        } else if streak < paren_count {
+            streak = 0;
+        } else {
+            break;
+        }
+
+        end += ch.len_utf8();
+    }
+
+    (&line[..(end - paren_count)], &line[end..])
+}
+
 fn parse_line<'a>(env: &Environment, line: &'a str) -> Line<'a> {
-    let Some((front, mut rest)) = line.split_once("@(") else {
+    let Some((front, mut rest)) = line.split_once('@') else {
         return Line {
             front: line,
             expressions: vec![],
         };
     };
 
-    fn split_expression(s: &str) -> (&str, &str) {
-        s.split_once(')').unwrap_or((s, ""))
-    }
-
     let mut expressions = vec![];
     while !rest.is_empty() {
-        let (expr, text) = split_expression(rest);
+        let (expr, text) = split_expr(rest);
         let expr = env.compile_expr(expr).unwrap();
 
-        let (text, tail) = text.split_once("@(").unwrap_or((text, ""));
+        let (text, tail) = text.split_once('@').unwrap_or((text, ""));
         rest = tail;
 
         expressions.push((expr, text));
