@@ -34,21 +34,23 @@ pub fn new_engine() -> rhai::Engine {
 }
 
 pub fn render(input: &str) -> String {
-    render_with_engine(&new_engine(), input)
+    render_with_engine(new_engine(), input)
 }
 
-pub fn render_with_engine(engine: &rhai::Engine, input: &str) -> String {
-    let mut scope = rhai::Scope::new();
-
+pub fn render_with_engine(engine: rhai::Engine, input: &str) -> String {
     let (front_matter, input) = parse::parse_front_matter(input);
 
-    if let Some(front_matter) = front_matter {
-        if let Err(err) = engine.run_with_scope(&mut scope, front_matter) {
-            return format!("Error: {}", err);
+    let env = if let Some(script) = front_matter {
+        match Environment::try_with_script(engine, script) {
+            Ok(env) => env,
+            Err(err) => {
+                return format!("Error: {}", err);
+            }
         }
-    }
+    } else {
+        Environment::with_engine(engine)
+    };
 
-    let env = Environment::new(engine, &mut scope);
     render_with_environment(env, input)
 }
 

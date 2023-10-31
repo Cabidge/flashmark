@@ -49,7 +49,7 @@ fn main() {
         @end
     "#};
 
-    let env = flashmark::template::Environment::new(&engine, &mut scope);
+    let env = flashmark::template::Environment::with_scope(engine, scope);
     let output = flashmark::template::render_with_environment(env, input);
 
     println!("{}", output);

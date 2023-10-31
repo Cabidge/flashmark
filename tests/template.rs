@@ -5,10 +5,10 @@ fn test_render(input: &str, expected: &str) {
     assert_eq!(actual.trim_end(), expected.trim_end());
 }
 
-fn test_render_with_scope(scope: &mut rhai::Scope<'static>, input: &str, expected: &str) {
+fn test_render_with_scope(scope: rhai::Scope<'static>, input: &str, expected: &str) {
     use flashmark::template;
     let engine = template::new_engine();
-    let env = template::Environment::new(&engine, scope);
+    let env = template::Environment::with_scope(engine, scope);
     let actual = template::render_with_environment(env, input);
 
     assert_eq!(actual.trim_end(), expected.trim_end());
@@ -52,7 +52,7 @@ fn expression_variables() {
     let mut scope = rhai::Scope::new();
     scope.push("name", "World");
 
-    test_render_with_scope(&mut scope, "Hello, @name!", "Hello, World!");
+    test_render_with_scope(scope, "Hello, @name!", "Hello, World!");
 }
 
 #[test]
@@ -61,7 +61,7 @@ fn expression_variables_and_arithmetic() {
     scope.push("x", 1);
     scope.push("y", 2);
 
-    test_render_with_scope(&mut scope, "@x + @y = @(x + y)", "1 + 2 = 3");
+    test_render_with_scope(scope, "@x + @y = @(x + y)", "1 + 2 = 3");
 }
 
 #[test]
@@ -69,10 +69,11 @@ fn expression_function() {
     test_render(
         indoc! {"
             ---
-            let sqr = |x| x * x;
+            fn sqr(x) {
+                x * x
+            }
             ---
-            @x
-            @(sqr.call(5))
+            @(sqr(5))
         "},
         "25",
     );
@@ -202,7 +203,7 @@ fn if_expression() {
     scope.push("x", 1_i64);
 
     test_render_with_scope(
-        &mut scope,
+        scope.clone(),
         indoc! {"
             @if x == 1
                 1
@@ -213,7 +214,7 @@ fn if_expression() {
         "1",
     );
     test_render_with_scope(
-        &mut scope,
+        scope,
         indoc! {"
             @if x == 2
                 1
@@ -231,7 +232,7 @@ fn if_body_with_expression() {
     scope.push("name", "World");
 
     test_render_with_scope(
-        &mut scope,
+        scope,
         indoc! {"
             Hello, @name!
             @if true
@@ -264,7 +265,7 @@ fn for_expression() {
     scope.push("arr", arr);
 
     test_render_with_scope(
-        &mut scope,
+        scope,
         indoc! {"
             @for x in arr
                 @x
@@ -281,7 +282,7 @@ fn for_nested() {
     scope.push("arr", arr);
 
     test_render_with_scope(
-        &mut scope,
+        scope,
         indoc! {"
             @for x in arr
                 @for y in arr

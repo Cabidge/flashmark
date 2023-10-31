@@ -248,7 +248,7 @@ impl<'a> IfChainBlock<'a> {
 
     pub fn get_branch(
         &self,
-        env: &mut Environment<'_>,
+        env: &mut Environment,
     ) -> Option<Result<&Block<'a>, Box<rhai::EvalAltResult>>> {
         for block in self.if_blocks.iter() {
             match env.eval_ast::<bool>(&block.condition) {
