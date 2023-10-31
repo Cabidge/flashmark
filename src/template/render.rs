@@ -45,15 +45,40 @@ impl<'a> Render for IfChainBlock<'a> {
 
 impl<'a> Render for ForBlock<'a> {
     fn render(&self, env: &mut Environment, unindent_amount: usize, output: &mut String) {
-        let iterable = env.eval_ast(&self.iterable).unwrap();
-        let iterator = env.get_iter(iterable).unwrap();
+        use std::fmt::Write;
+
+        // the amount of indentation errors should have
+        let err_indent = self.block.indent.saturating_sub(unindent_amount);
+
+        let iterable = match env.eval_ast(&self.iterable) {
+            Ok(iterable) => iterable,
+            Err(err) => {
+                write!(output, "{:err_indent$}{}", "", err).expect("writing to string can't fail");
+                return;
+            }
+        };
+
+        let iterator = match env.get_iter(iterable) {
+            Ok(iterator) => iterator,
+            Err(value) => {
+                write!(output, "{:err_indent$}{} is not iterable", "", value)
+                    .expect("writing to string can't fail");
+                return;
+            }
+        };
 
         for item in iterator {
-            env.scope_mut().push(self.binding, item.unwrap());
-
-            self.block.render(env, unindent_amount, output);
-
-            env.scope_mut().pop();
+            match item {
+                Ok(value) => {
+                    env.scope_mut().push(self.binding, value);
+                    self.block.render(env, unindent_amount, output);
+                    env.scope_mut().pop();
+                }
+                Err(err) => {
+                    write!(output, "{:err_indent$}{}", "", err)
+                        .expect("writing to string can't fail");
+                }
+            }
         }
     }
 }
