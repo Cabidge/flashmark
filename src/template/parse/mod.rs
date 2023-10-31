@@ -120,7 +120,7 @@ fn parse_directive_block<'a>(
             Some(Node::If(block))
         }
         ("for", Some(header)) => {
-            let (binding, iterable) = header.split_once(" in ").unwrap();
+            let (binding, iterable) = header.split_once(" in ")?;
             let binding = binding.trim();
             let iterable = env.compile_expr(iterable).unwrap();
 
