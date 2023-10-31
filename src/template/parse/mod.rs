@@ -122,16 +122,20 @@ fn split_expr(mut line: &str) -> (&str, &str) {
             }
         } else if ch == ')' {
             streak += 1;
-        } else if streak < paren_count {
-            streak = 0;
-        } else {
+        } else if streak >= paren_count {
             break;
+        } else {
+            streak = 0;
         }
 
         end += ch.len_utf8();
     }
 
-    (&line[..(end - paren_count)], &line[end..])
+    if streak >= paren_count {
+        (&line[..(end - paren_count)], &line[end..])
+    } else {
+        (line, "")
+    }
 }
 
 fn parse_line<'a>(env: &Environment, line: &'a str) -> Line<'a> {
