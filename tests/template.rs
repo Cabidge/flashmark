@@ -19,7 +19,7 @@ fn front_matter() {
             ---
             let name = "World";
             ---
-            Hello, @(name)!
+            Hello, @name!
         "#},
         "Hello, World!",
     );
@@ -32,7 +32,7 @@ fn literal() {
 
 #[test]
 fn literal_with_at() {
-    test_render("Hello, @World!", "Hello, @World!");
+    test_render("Hello, \\@World!", "Hello, @World!");
 }
 
 #[test]
@@ -50,7 +50,7 @@ fn expression_variables() {
     let mut scope = rhai::Scope::new();
     scope.push("name", "World");
 
-    test_render_with_scope(&mut scope, "Hello, @(name)!", "Hello, World!");
+    test_render_with_scope(&mut scope, "Hello, @name!", "Hello, World!");
 }
 
 #[test]
@@ -59,7 +59,7 @@ fn expression_variables_and_arithmetic() {
     scope.push("x", 1);
     scope.push("y", 2);
 
-    test_render_with_scope(&mut scope, "@(x) + @(y) = @(x + y)", "1 + 2 = 3");
+    test_render_with_scope(&mut scope, "@x + @y = @(x + y)", "1 + 2 = 3");
 }
 
 #[test]
@@ -217,9 +217,9 @@ fn if_body_with_expression() {
     test_render_with_scope(
         &mut scope,
         indoc! {"
-            Hello, @(name)!
+            Hello, @name!
             @if true
-                Hello, @(name)!
+                Hello, @name!
             @end
         "},
         indoc! {"
@@ -234,7 +234,7 @@ fn for_array() {
     test_render(
         indoc! {"
             @for x in [1, 2, 3]
-                @(x)
+                @x
             @end
         "},
         "1\n2\n3",
@@ -251,7 +251,7 @@ fn for_expression() {
         &mut scope,
         indoc! {"
             @for x in arr
-                @(x)
+                @x
             @end
         "},
         "1\n2\n3",
@@ -269,7 +269,7 @@ fn for_nested() {
         indoc! {"
             @for x in arr
                 @for y in arr
-                    (@(x), @(y))
+                    (@x, @y)
                 @end
             @end
         "},
