@@ -92,8 +92,14 @@ impl<'a> Render for Line<'a> {
         for (expr, text) in &self.expressions {
             use std::fmt::Write;
 
-            let value = env.eval_ast::<rhai::Dynamic>(expr).unwrap();
-            write!(output, "{}", value).expect("writing to string can't fail");
+            match env.eval_ast::<rhai::Dynamic>(expr) {
+                Ok(value) => {
+                    write!(output, "{}", value).expect("writing to string can't fail");
+                }
+                Err(err) => {
+                    write!(output, "{}", err).expect("writing to string can't fail");
+                }
+            }
 
             output.push_str(text);
         }
