@@ -53,7 +53,8 @@ impl<'a> Render for ForBlock<'a> {
         let iterable = match env.eval_ast(&self.iterable) {
             Ok(iterable) => iterable,
             Err(err) => {
-                write!(output, "{:err_indent$}{}", "", err).expect("writing to string can't fail");
+                writeln!(output, "{:err_indent$}{}", "", err)
+                    .expect("writing to string can't fail");
                 return;
             }
         };
@@ -61,7 +62,7 @@ impl<'a> Render for ForBlock<'a> {
         let iterator = match env.get_iter(iterable) {
             Ok(iterator) => iterator,
             Err(value) => {
-                write!(output, "{:err_indent$}{} is not iterable", "", value)
+                writeln!(output, "{:err_indent$}{} is not iterable", "", value)
                     .expect("writing to string can't fail");
                 return;
             }
@@ -75,7 +76,7 @@ impl<'a> Render for ForBlock<'a> {
                     env.scope_mut().pop();
                 }
                 Err(err) => {
-                    write!(output, "{:err_indent$}{}", "", err)
+                    writeln!(output, "{:err_indent$}{}", "", err)
                         .expect("writing to string can't fail");
                 }
             }
