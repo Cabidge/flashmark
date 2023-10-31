@@ -7,7 +7,9 @@ fn test_render(input: &str, expected: &str) {
 
 fn test_render_with_scope(scope: &mut rhai::Scope<'static>, input: &str, expected: &str) {
     use flashmark::template;
-    let actual = template::render_with_engine_and_scope(&template::new_engine(), scope, input);
+    let engine = template::new_engine();
+    let env = template::Environment::new(&engine, scope);
+    let actual = template::render_with_environment(env, input);
 
     assert_eq!(actual.trim_end(), expected.trim_end());
 }

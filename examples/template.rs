@@ -49,7 +49,8 @@ fn main() {
         @end
     "#};
 
-    let output = flashmark::template::render_with_engine_and_scope(&engine, &mut scope, input);
+    let env = flashmark::template::Environment::new(&engine, &mut scope);
+    let output = flashmark::template::render_with_environment(env, input);
 
     println!("{}", output);
 }

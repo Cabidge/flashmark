@@ -48,16 +48,11 @@ pub fn render_with_engine(engine: &rhai::Engine, input: &str) -> String {
         }
     }
 
-    render_with_engine_and_scope(engine, &mut scope, input)
+    let env = Environment::new(engine, &mut scope);
+    render_with_environment(env, input)
 }
 
-pub fn render_with_engine_and_scope(
-    engine: &rhai::Engine,
-    scope: &mut rhai::Scope<'static>,
-    input: &str,
-) -> String {
-    let mut env = Environment::new(engine, scope);
-
+pub fn render_with_environment(mut env: Environment, input: &str) -> String {
     let mut output = String::new();
     parse_root(&env, &mut input.lines()).render(&mut env, 0, &mut output);
 
