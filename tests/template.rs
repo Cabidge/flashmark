@@ -63,6 +63,20 @@ fn expression_variables_and_arithmetic() {
 }
 
 #[test]
+fn expression_function() {
+    test_render(
+        indoc! {"
+            ---
+            let sqr = |x| x * x;
+            ---
+            @x
+            @(sqr.call(5))
+        "},
+        "25",
+    );
+}
+
+#[test]
 fn if_true_and_false() {
     test_render(
         indoc! {"
