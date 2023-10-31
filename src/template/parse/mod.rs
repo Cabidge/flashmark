@@ -198,14 +198,19 @@ impl<'a> IfChainBlock<'a> {
             .min()
     }
 
-    pub fn get_branch(&self, env: &mut Environment<'_>) -> Option<&Block<'a>> {
+    pub fn get_branch(
+        &self,
+        env: &mut Environment<'_>,
+    ) -> Option<Result<&Block<'a>, Box<rhai::EvalAltResult>>> {
         for block in self.if_blocks.iter() {
-            if env.eval_ast::<bool>(&block.condition).unwrap() {
-                return Some(&block.block);
+            match env.eval_ast::<bool>(&block.condition) {
+                Ok(true) => return Some(Ok(&block.block)),
+                Err(err) => return Some(Err(err)),
+                Ok(false) => (),
             }
         }
 
-        self.else_block.as_ref()
+        self.else_block.as_ref().map(Ok)
     }
 }
 

@@ -35,11 +35,22 @@ impl<'a> Render for Block<'a> {
 
 impl<'a> Render for IfChainBlock<'a> {
     fn render(&self, env: &mut Environment, unindent_amount: usize, output: &mut String) {
-        let Some(block) = self.get_branch(env) else {
-            return;
-        };
+        match self.get_branch(env) {
+            Some(Ok(block)) => block.render(env, unindent_amount, output),
+            Some(Err(err)) => {
+                use std::fmt::Write;
 
-        block.render(env, unindent_amount, output);
+                // the amount of indentation errors should have
+                let err_indent = self
+                    .min_indentation()
+                    .unwrap_or(0)
+                    .saturating_sub(unindent_amount);
+
+                writeln!(output, "{:err_indent$}{}", "", err)
+                    .expect("writing to string can't fail");
+            }
+            None => (),
+        }
     }
 }
 
