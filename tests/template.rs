@@ -32,7 +32,7 @@ fn literal() {
 
 #[test]
 fn literal_with_at() {
-    test_render("Hello, \\@World!", "Hello, @World!");
+    test_render("Hello, \\@World!", "Hello, \\@World!");
 }
 
 #[test]

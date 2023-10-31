@@ -82,6 +82,29 @@ fn parse_block<'a>(
     (block, None)
 }
 
+fn split_expr_prefix(line: &str) -> Option<(&str, &str)> {
+    let mut ignore = false;
+    let mut len = 0;
+    for ch in line.chars() {
+        len += ch.len_utf8();
+
+        if ignore {
+            ignore = true;
+            continue;
+        }
+
+        match ch {
+            '\\' => ignore = true,
+            '@' => {
+                return Some((&line[..(len - 1)], &line[len..]));
+            }
+            _ => (),
+        }
+    }
+
+    None
+}
+
 fn split_expr(mut line: &str) -> (&str, &str) {
     let mut paren_count = 0;
     while let Some(next) = line.strip_prefix('(') {
@@ -112,7 +135,7 @@ fn split_expr(mut line: &str) -> (&str, &str) {
 }
 
 fn parse_line<'a>(env: &Environment, line: &'a str) -> Line<'a> {
-    let Some((front, mut rest)) = line.split_once('@') else {
+    let Some((front, mut rest)) = split_expr_prefix(line) else {
         return Line {
             front: line,
             expressions: vec![],
@@ -124,7 +147,7 @@ fn parse_line<'a>(env: &Environment, line: &'a str) -> Line<'a> {
         let (expr, text) = split_expr(rest);
         let expr = env.compile_expr(expr).unwrap();
 
-        let (text, tail) = text.split_once('@').unwrap_or((text, ""));
+        let (text, tail) = split_expr_prefix(text).unwrap_or((text, ""));
         rest = tail;
 
         expressions.push((expr, text));
