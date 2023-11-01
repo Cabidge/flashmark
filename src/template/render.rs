@@ -103,6 +103,14 @@ impl<'a> Render for Line<'a> {
         for (expr, text) in &self.expressions {
             use std::fmt::Write;
 
+            let expr = match expr {
+                Ok(expr) => expr,
+                Err(err) => {
+                    write!(output, "{}", err).expect("writing to string can't fail");
+                    continue;
+                }
+            };
+
             match env.eval_ast::<rhai::Dynamic>(expr) {
                 Ok(value) => {
                     write!(output, "{}", value).expect("writing to string can't fail");
@@ -124,6 +132,15 @@ impl<'a> Render for Node<'a> {
             Node::Line(line) => line.render(env, unindent_amount, output),
             Node::If(if_block) => if_block.render(env, unindent_amount, output),
             Node::For(for_block) => for_block.render(env, unindent_amount, output),
+            Node::Err { indent, error } => {
+                use std::fmt::Write;
+
+                // the amount of indentation errors should have
+                let err_indent = indent.saturating_sub(unindent_amount);
+
+                writeln!(output, "{:err_indent$}{}", "", error)
+                    .expect("writing to string can't fail");
+            }
         }
     }
 }

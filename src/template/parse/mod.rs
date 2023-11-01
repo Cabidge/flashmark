@@ -27,13 +27,17 @@ pub struct ForBlock<'a> {
 
 pub struct Line<'a> {
     pub front: &'a str,
-    pub expressions: Vec<(rhai::AST, &'a str)>,
+    pub expressions: Vec<(Result<rhai::AST, rhai::ParseError>, &'a str)>,
 }
 
 pub enum Node<'a> {
     Line(Line<'a>),
     If(IfChainBlock<'a>),
     For(ForBlock<'a>),
+    Err {
+        indent: usize,
+        error: rhai::ParseError,
+    },
 }
 
 pub fn parse_root<'a>(env: &Environment, lines: &mut impl Iterator<Item = &'a str>) -> Block<'a> {
@@ -69,8 +73,14 @@ fn parse_block<'a>(
                 return (block, Some(directive));
             }
 
-            if let Some(node) = parse_directive_block(env, directive, lines) {
+            if let Some(res) = parse_directive_block(env, directive, lines) {
+                let node = res.unwrap_or_else(|err| Node::Err {
+                    indent: directive.indent,
+                    error: err,
+                });
+
                 block.nodes.push(node);
+
                 continue;
             }
         }
@@ -149,7 +159,7 @@ fn parse_line<'a>(env: &Environment, line: &'a str) -> Line<'a> {
     let mut expressions = vec![];
     while !rest.is_empty() {
         let (expr, text) = split_expr(rest);
-        let expr = env.compile_expr(expr).unwrap();
+        let expr = env.compile_expr(expr);
 
         let (text, tail) = split_expr_prefix(text).unwrap_or((text, ""));
         rest = tail;
@@ -164,25 +174,28 @@ fn parse_directive_block<'a>(
     env: &Environment,
     directive: Directive<'a>,
     lines: &mut impl Iterator<Item = &'a str>,
-) -> Option<Node<'a>> {
+) -> Option<Result<Node<'a>, rhai::ParseError>> {
     match (directive.name, directive.args) {
         ("if", Some(condition)) => {
-            let block = parse_if_chain(env, condition, lines, directive.indent);
-
-            Some(Node::If(block))
+            let res = parse_if_chain(env, condition, lines, directive.indent).map(Node::If);
+            Some(res)
         }
         ("for", Some(header)) => {
             let (binding, iterable) = header.split_once(" in ")?;
             let binding = binding.trim();
-            let iterable = env.compile_expr(iterable).unwrap();
+            let iterable = match env.compile_expr(iterable) {
+                Ok(iterable) => iterable,
+                Err(err) => return Some(Err(err)),
+            };
 
             let (block, _) = parse_block(env, lines, directive.indent, is_end_directive);
-
-            Some(Node::For(ForBlock {
+            let for_block = ForBlock {
                 binding,
                 iterable,
                 block,
-            }))
+            };
+
+            Some(Ok(Node::For(for_block)))
         }
         _ => None,
     }
@@ -193,7 +206,7 @@ fn parse_if_chain<'a>(
     condition: &str,
     lines: &mut impl Iterator<Item = &'a str>,
     indent: usize,
-) -> IfChainBlock<'a> {
+) -> Result<IfChainBlock<'a>, rhai::ParseError> {
     let mut if_chain = IfChainBlock {
         if_blocks: vec![],
         else_block: None,
@@ -201,7 +214,7 @@ fn parse_if_chain<'a>(
 
     let mut cond_src = condition;
     loop {
-        let condition = env.compile_expr(cond_src).unwrap();
+        let condition = env.compile_expr(cond_src)?;
 
         fn is_sentinel(directive: &Directive<'_>) -> bool {
             matches!(
@@ -220,7 +233,7 @@ fn parse_if_chain<'a>(
         {
             ("elif", Some(cond)) => cond_src = cond,
             ("else", _) => break,
-            _ => return if_chain,
+            _ => return Ok(if_chain),
         }
     }
 
@@ -228,7 +241,7 @@ fn parse_if_chain<'a>(
 
     if_chain.else_block = Some(block);
 
-    if_chain
+    Ok(if_chain)
 }
 
 impl<'a> Block<'a> {
@@ -281,6 +294,7 @@ impl<'a> Node<'a> {
             Node::Line(line) => line.indentation(),
             Node::If(if_block) => if_block.min_indentation(),
             Node::For(for_block) => Some(for_block.block.indent),
+            Node::Err { indent, .. } => Some(*indent),
         }
     }
 }
