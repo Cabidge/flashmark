@@ -1,19 +1,11 @@
 use indoc::indoc;
 
 fn main() {
-    let engine = flashmark::template::new_engine();
-    let mut scope = rhai::Scope::new();
-
-    scope.push("s", "foo");
-
-    let map: rhai::Map = [("a", 1), ("b", 2), ("c", 3)]
-        .into_iter()
-        .map(|(k, v)| (k.into(), v.into()))
-        .collect();
-
-    scope.push("map", map);
-
     let input = indoc! {r#"
+        ---
+        let s = "foo";
+        let map = #{ a: 1, b: 2, c: 3};
+        ---
         @for i in 0..10
             @if i % 2 == 0
                 @i is even
@@ -49,8 +41,7 @@ fn main() {
         @end
     "#};
 
-    let env = flashmark::template::Environment::with_scope(engine, scope);
-    let output = flashmark::template::render_with_environment(env, input);
+    let output = flashmark::template::render(input);
 
     println!("{}", output);
 }
