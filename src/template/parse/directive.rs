@@ -1,3 +1,4 @@
+#[derive(Clone, Copy)]
 pub struct Directive<'a> {
     pub indent: usize,
     pub name: &'a str,
