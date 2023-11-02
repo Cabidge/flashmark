@@ -94,25 +94,16 @@ fn parse_block<'a>(
 
 fn split_expr_prefix(line: &str) -> Option<(&str, &str)> {
     let mut ignore = false;
-    let mut len = 0;
-    for ch in line.chars() {
-        len += ch.len_utf8();
-
-        if ignore {
-            ignore = true;
-            continue;
-        }
-
+    line.split_once(|ch| {
         match ch {
+            _ if ignore => ignore = false,
             '\\' => ignore = true,
-            '@' => {
-                return Some((&line[..(len - 1)], &line[len..]));
-            }
+            '@' => return true,
             _ => (),
         }
-    }
 
-    None
+        false
+    })
 }
 
 fn split_expr(mut line: &str) -> (&str, &str) {
